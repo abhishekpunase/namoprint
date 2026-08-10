@@ -22,7 +22,12 @@ export default defineConfig(({ mode }) => {
     },
   }
 
-  console.log(`[vite] Dev API proxy: /api -> ${apiTarget}`)
+  const apiMode = env.VITE_DEV_API_MODE || 'direct'
+  if (apiMode === 'proxy') {
+    console.log(`[vite] Dev API proxy mode: /api -> ${apiTarget}`)
+  } else {
+    console.log(`[vite] Dev API direct mode: browser -> ${apiTarget}/api (proxy disabled)`)
+  }
 
   return {
     envDir: configDir,

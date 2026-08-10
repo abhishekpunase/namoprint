@@ -5,18 +5,28 @@ function normalizeApiBase(raw) {
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`
 }
 
-/** Dev: /api via Vite proxy. Prod: same-origin /api or explicit VITE_API_BASE_URL. */
+function getDevApiTarget() {
+  return String(import.meta.env.VITE_DEV_API_TARGET || 'http://localhost:5000')
+    .trim()
+    .replace(/\/+$/, '')
+}
+
+/**
+ * Dev API routing:
+ * - VITE_DEV_API_MODE=direct (default): browser calls http://localhost:5000/api (Network tab shows port 5000)
+ * - VITE_DEV_API_MODE=proxy: browser calls /api on Vite port; Vite proxies using VITE_DEV_API_TARGET
+ */
 export function getApiBaseUrl() {
-  const fromEnv = normalizeApiBase(import.meta.env.VITE_API_BASE_URL)
-  if (fromEnv) {
-    if (import.meta.env.DEV && /^https?:\/\//i.test(fromEnv)) {
-      console.warn(
-        '[api] VITE_API_BASE_URL is set to an absolute URL in dev — Vite proxy is bypassed.',
-        'Remove it from frontend/.env to use VITE_DEV_API_TARGET via /api proxy.',
-      )
+  const explicit = normalizeApiBase(import.meta.env.VITE_API_BASE_URL)
+  if (explicit) return explicit
+
+  if (import.meta.env.DEV) {
+    const mode = String(import.meta.env.VITE_DEV_API_MODE || 'direct').toLowerCase()
+    if (mode === 'direct') {
+      return `${getDevApiTarget()}/api`
     }
-    return fromEnv
   }
+
   return '/api'
 }
 
@@ -37,7 +47,8 @@ export function getApiOrigin() {
 
 export function getNetworkErrorMessage() {
   if (import.meta.env.DEV) {
-    return 'API server is not running. From the project root run: npm run dev'
+    const target = getDevApiTarget()
+    return `Cannot reach API at ${target}. From the project root run: npm run dev`
   }
   return 'Cannot reach API server. Please try again in a moment.'
 }
