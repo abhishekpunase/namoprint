@@ -1,3 +1,5 @@
+import { ApiError } from '../utils/apiError.js';
+import { createShiprocketOrder, testShiprocketConnection } from './shiprocket.service.js';
 import { getShiprocketConfig } from './storeSettings.service.js';
 
 export const isShiprocketConfigured = async () => {
@@ -15,9 +17,12 @@ export const createShipmentDraft = async ({ order }) => {
     };
   }
 
-  const config = await getShiprocketConfig();
-  return {
-    provider: 'shiprocket',
-    note: `Ready to push order ${order.orderNo} to Shiprocket (${config.email}).`,
-  };
+  try {
+    return await createShiprocketOrder(order);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(502, err.message || 'Failed to create Shiprocket shipment');
+  }
 };
+
+export { testShiprocketConnection };

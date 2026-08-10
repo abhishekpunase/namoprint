@@ -412,8 +412,14 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   order.status = req.body.status;
   order.statusHistory.push({ status: req.body.status, note: req.body.note, changedBy: req.user._id });
 
-  if (req.body.status === 'Shipped' && !order.shipment?.provider) {
-    order.shipment = await createShipmentDraft({ order });
+  if (req.body.status === 'Shipped') {
+    if (!order.shipment?.shipmentId) {
+      const shipment = await createShipmentDraft({ order });
+      order.shipment = {
+        ...(order.shipment || {}),
+        ...shipment,
+      };
+    }
   }
 
   await order.save();

@@ -27,6 +27,15 @@ import {
   categoryCarouselUpdateSchema,
 } from '../validators/categoryCarousel.validator.js';
 import {
+  homeTestimonialSchema,
+  homeTestimonialUpdateSchema,
+  homeTestimonialSectionSchema,
+} from '../validators/homeTestimonial.validator.js';
+import {
+  homeOfferMarqueeSchema,
+  homeOfferMarqueeUpdateSchema,
+} from '../validators/homeOfferMarquee.validator.js';
+import {
   productReelSchema,
   productReelUpdateSchema,
 } from '../validators/productReel.validator.js';
@@ -51,6 +60,19 @@ import {
   updateCategoryCarouselItem,
 } from '../controllers/categoryCarousel.controller.js';
 import {
+  createHomeTestimonial,
+  deleteHomeTestimonial,
+  listAdminHomeTestimonials,
+  updateHomeTestimonial,
+  updateHomeTestimonialSection,
+} from '../controllers/homeTestimonial.controller.js';
+import {
+  createHomeOfferMarqueeItem,
+  deleteHomeOfferMarqueeItem,
+  listAdminHomeOfferMarquee,
+  updateHomeOfferMarqueeItem,
+} from '../controllers/homeOfferMarquee.controller.js';
+import {
   createProductReel,
   deleteProductReel,
   listAdminProductReels,
@@ -59,6 +81,7 @@ import {
 import {
   getAdminIntegrations,
   sendAdminTestEmail,
+  testAdminShiprocket,
   updateAdminIntegrations,
 } from '../controllers/integrations.controller.js';
 import {
@@ -103,6 +126,17 @@ adminRoutes.post('/category-carousel', validate(categoryCarouselSchema), createC
 adminRoutes.patch('/category-carousel/:id', validate(categoryCarouselUpdateSchema), updateCategoryCarouselItem);
 adminRoutes.delete('/category-carousel/:id', deleteCategoryCarouselItem);
 
+adminRoutes.get('/home-testimonials', listAdminHomeTestimonials);
+adminRoutes.patch('/home-testimonials/section', validate(homeTestimonialSectionSchema), updateHomeTestimonialSection);
+adminRoutes.post('/home-testimonials', validate(homeTestimonialSchema), createHomeTestimonial);
+adminRoutes.patch('/home-testimonials/:id', validate(homeTestimonialUpdateSchema), updateHomeTestimonial);
+adminRoutes.delete('/home-testimonials/:id', deleteHomeTestimonial);
+
+adminRoutes.get('/home-offer-marquee', listAdminHomeOfferMarquee);
+adminRoutes.post('/home-offer-marquee', validate(homeOfferMarqueeSchema), createHomeOfferMarqueeItem);
+adminRoutes.patch('/home-offer-marquee/:id', validate(homeOfferMarqueeUpdateSchema), updateHomeOfferMarqueeItem);
+adminRoutes.delete('/home-offer-marquee/:id', deleteHomeOfferMarqueeItem);
+
 adminRoutes.get('/product-reels', listAdminProductReels);
 adminRoutes.post('/product-reels', validate(productReelSchema), createProductReel);
 adminRoutes.patch('/product-reels/:id', validate(productReelUpdateSchema), updateProductReel);
@@ -111,6 +145,7 @@ adminRoutes.delete('/product-reels/:id', deleteProductReel);
 adminRoutes.get('/integrations', getAdminIntegrations);
 adminRoutes.patch('/integrations', validate(integrationsUpdateSchema), updateAdminIntegrations);
 adminRoutes.post('/integrations/test-email', validate(testEmailSchema), sendAdminTestEmail);
+adminRoutes.post('/integrations/test-shiprocket', testAdminShiprocket);
 
 adminRoutes.get('/reviews', listAdminReviews);
 adminRoutes.post('/reviews', validate(productReviewSchema), createReview);

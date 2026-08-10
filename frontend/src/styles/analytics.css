@@ -1,0 +1,95 @@
+/* Analytics module — anl-* prefix */
+.anl-page { display: grid; gap: 20px; animation: dash-fade-in 0.35s ease; padding-bottom: 32px; }
+.anl-page-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.anl-page-header h1 { margin: 0; font-size: clamp(1.5rem, 2.5vw, 2rem); color: var(--admin-text); }
+.anl-page-header p { margin: 6px 0 0; color: var(--admin-text-muted); font-size: 0.875rem; }
+.anl-breadcrumb { display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.8125rem; color: var(--admin-text-muted); margin-bottom: 8px; }
+.anl-breadcrumb a:hover { color: var(--admin-primary); }
+
+.anl-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px; border-radius: 14px; background: var(--admin-surface-muted); border: 1px solid var(--admin-border); }
+.anl-tab { min-height: 38px; padding: 0 16px; border: 0; border-radius: 10px; background: transparent; color: var(--admin-text-muted); font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.anl-tab.is-active { background: var(--admin-surface); color: var(--admin-primary-strong); box-shadow: var(--admin-shadow-sm); }
+
+.anl-search { display: flex; min-width: min(100%, 360px); min-height: 44px; padding: 0 14px; border: 1px solid var(--admin-border); border-radius: 12px; background: var(--admin-surface); }
+.anl-search input { flex: 1; border: 0; outline: none; background: transparent; color: var(--admin-text); }
+
+.anl-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 16px; border: 1px solid var(--admin-border); border-radius: 14px; background: var(--admin-surface-muted); }
+.anl-filters label { display: grid; gap: 6px; font-size: 0.75rem; font-weight: 600; color: var(--admin-text-muted); }
+.anl-filters select, .anl-filters input { min-height: 38px; padding: 0 10px; border: 1px solid var(--admin-border); border-radius: 8px; background: var(--admin-surface); color: var(--admin-text); }
+.anl-filters__check { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 500; min-height: 38px; }
+
+.anl-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.anl-kpi-card { padding: 16px; border-radius: 16px; border: 1px solid var(--admin-border); background: linear-gradient(135deg, var(--admin-surface) 0%, var(--admin-surface-muted) 100%); backdrop-filter: blur(8px); box-shadow: var(--admin-shadow-sm); display: grid; gap: 6px; transition: transform 0.2s, box-shadow 0.2s; }
+.anl-kpi-card:hover { transform: translateY(-3px); box-shadow: var(--admin-shadow-md, 0 8px 24px rgba(0,0,0,0.08)); }
+.anl-kpi-card span { font-size: 0.75rem; color: var(--admin-text-muted); }
+.anl-kpi-card strong { font-size: 1.15rem; color: var(--admin-text); }
+.anl-kpi-card small { font-size: 0.75rem; color: var(--admin-text-muted); }
+.anl-kpi-card__growth { font-size: 0.75rem; font-weight: 700; }
+.anl-kpi-card__growth.is-up { color: #166534; }
+.anl-kpi-card__growth.is-down { color: #b91c1c; }
+.anl-kpi-card--todo { opacity: 0.85; border-style: dashed; }
+
+.anl-panel { padding: 20px; border: 1px solid var(--admin-border); border-radius: 16px; background: var(--admin-surface); box-shadow: var(--admin-shadow-sm); }
+.anl-panel h2 { margin: 0 0 12px; font-size: 1rem; color: var(--admin-text); }
+.anl-panel h3 { margin: 0 0 8px; font-size: 0.875rem; color: var(--admin-text-muted); }
+.anl-panel__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+
+.anl-charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.anl-charts-grid--wide { grid-template-columns: 1fr; }
+.anl-chart-wrap { min-height: 280px; }
+
+.anl-sections-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.anl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.anl-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--admin-surface-muted); font-size: 0.875rem; }
+.anl-list strong { color: var(--admin-text); }
+
+.anl-realtime { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.anl-realtime-card { padding: 14px; border-radius: 12px; border: 1px solid var(--admin-border); background: var(--admin-surface-muted); }
+.anl-realtime-card span { display: block; font-size: 0.75rem; color: var(--admin-text-muted); margin-bottom: 4px; }
+.anl-realtime-card strong { font-size: 1.1rem; }
+
+.anl-goals { display: grid; gap: 14px; }
+.anl-goal { display: grid; gap: 6px; }
+.anl-goal__bar { height: 8px; border-radius: 999px; background: var(--admin-border); overflow: hidden; }
+.anl-goal__bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--admin-primary), var(--admin-primary-strong)); border-radius: 999px; transition: width 0.4s ease; }
+
+.anl-reports-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.anl-report-card { display: grid; gap: 6px; padding: 18px; border: 1px solid var(--admin-border); border-radius: 14px; background: var(--admin-surface-muted); text-align: left; cursor: pointer; transition: border-color 0.2s, transform 0.2s; color: inherit; }
+.anl-report-card:hover { border-color: var(--admin-primary); transform: translateY(-2px); }
+.anl-report-card span { font-size: 0.8125rem; color: var(--admin-text-muted); }
+
+.anl-builder { display: grid; gap: 14px; }
+.anl-builder label { display: grid; gap: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--admin-text-muted); }
+.anl-builder select, .anl-builder input { min-height: 40px; padding: 0 12px; border: 1px solid var(--admin-border); border-radius: 10px; background: var(--admin-surface-muted); }
+
+.anl-table-wrap { overflow: auto; max-height: 400px; border: 1px solid var(--admin-border); border-radius: 12px; }
+.anl-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.anl-table th, .anl-table td { padding: 10px 12px; border-bottom: 1px solid var(--admin-border); text-align: left; }
+.anl-table thead { position: sticky; top: 0; background: var(--admin-surface-muted); }
+
+.anl-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid transparent; font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none; color: inherit; }
+.anl-btn--primary { background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-strong)); color: #fff; }
+.anl-btn--ghost { border-color: var(--admin-border); background: var(--admin-surface); color: var(--admin-text); }
+.anl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.anl-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.anl-empty { padding: 32px; text-align: center; color: var(--admin-text-muted); display: grid; gap: 8px; justify-items: center; }
+.anl-message { padding: 10px 14px; border-radius: 10px; background: var(--admin-primary-soft); }
+.anl-message--err { background: #fef2f2; color: #b91c1c; }
+.anl-todo-hint { font-size: 0.8125rem; color: var(--admin-text-muted); padding: 10px 12px; border: 1px dashed var(--admin-border); border-radius: 10px; background: var(--admin-surface-muted); }
+
+.anl-skeleton { border-radius: 16px; background: linear-gradient(90deg, var(--admin-surface-muted) 25%, var(--admin-surface) 50%, var(--admin-surface-muted) 75%); background-size: 200% 100%; animation: anl-shimmer 1.2s infinite; min-height: 90px; }
+.anl-skeleton--chart { min-height: 280px; }
+@keyframes anl-shimmer { to { background-position: -200% 0; } }
+
+.anl-modal-backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45); display: grid; place-items: center; padding: 20px; }
+.anl-modal { width: min(100%, 520px); max-height: 90vh; overflow: auto; padding: 24px; border-radius: 16px; background: var(--admin-surface); border: 1px solid var(--admin-border); box-shadow: var(--admin-shadow-lg); }
+.anl-modal__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+@media (max-width: 1023px) {
+  .anl-charts-grid, .anl-sections-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767px) {
+  .anl-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

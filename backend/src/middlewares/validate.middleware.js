@@ -11,6 +11,7 @@ export const validate = (schema) => {
       {
         abortEarly: false,
         stripUnknown: true,
+        convert: true,
       }
     );
 

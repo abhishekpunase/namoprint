@@ -1,0 +1,41 @@
+.smart-mockup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.smart-mockup-btn:hover:not(:disabled) {
+  border-color: #f97316;
+  color: #ea580c;
+}
+
+.smart-mockup-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.smart-mockup-btn.is-active,
+.smart-mockup-btn--primary {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #fff;
+}
+
+.smart-mockup-stage {
+  touch-action: none;
+  user-select: none;
+}
+
+.smart-mockup-layers {
+  max-height: 420px;
+  overflow-y: auto;
+}

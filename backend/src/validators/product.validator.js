@@ -75,6 +75,6 @@ export const productListSchema = Joi.object({
     category: Joi.string().allow('', null),
     productType: Joi.string().allow('', null),
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(200).default(20)
+    limit: Joi.number().integer().min(1).max(500).default(20)
   })
 });

@@ -23,6 +23,8 @@ import { trophyProductRoutes } from './trophyProduct.routes.js';
 import { penPrintProductRoutes } from './penPrintProduct.routes.js';
 import { uvDtfStickerProductRoutes } from './uvDtfStickerProduct.routes.js';
 import { productLabelStickerProductRoutes } from './productLabelStickerProduct.routes.js';
+import { homeTestimonialRoutes } from './homeTestimonial.routes.js';
+import { homeOfferMarqueeRoutes } from './homeOfferMarquee.routes.js';
 import { contactRoutes } from './contact.routes.js';
 
 const routes = Router();
@@ -51,6 +53,8 @@ routes.use('/trophies', trophyProductRoutes);
 routes.use('/pen-prints', penPrintProductRoutes);
 routes.use('/uv-dtf-stickers', uvDtfStickerProductRoutes);
 routes.use('/product-label-stickers', productLabelStickerProductRoutes);
+routes.use('/home-testimonials', homeTestimonialRoutes);
+routes.use('/home-offer-marquee', homeOfferMarqueeRoutes);
 routes.use('/contact', contactRoutes);
 
 export default routes;

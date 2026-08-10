@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1250" width="1000" height="1250">
+  <!-- Black outer frame (evenodd cuts inner hole for mat + photo) -->
+  <path fill="#111111" fill-rule="evenodd" d="M0 0h1000v1250H0z M50 45h900v1160H50z"/>
+  <!-- White matting ring -->
+  <path fill="#ffffff" fill-rule="evenodd" d="M50 45h900v1160H50z M90 80h820v1090H90z"/>
+</svg>

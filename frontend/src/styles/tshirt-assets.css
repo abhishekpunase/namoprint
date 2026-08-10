@@ -1,0 +1,109 @@
+/* T-shirt print assets — cart + admin order views */
+.tshirt-print-assets__hint {
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.tshirt-print-assets__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tshirt-print-assets--cart .tshirt-print-assets__grid {
+  max-width: 220px;
+}
+
+.tshirt-asset-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  background: var(--admin-surface-muted, #f8fafc);
+}
+
+.tshirt-asset-card__label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.tshirt-asset-card__frame {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  background: #fff;
+}
+
+.tshirt-asset-card__thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tshirt-asset-card__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tshirt-asset-card__empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 0.75rem;
+  color: var(--admin-text-muted, #94a3b8);
+}
+
+.tshirt-asset-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tshirt-asset-card__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  background: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--admin-text, #334155);
+  cursor: pointer;
+}
+
+.tshirt-asset-card__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tshirt-asset-card__btn--primary {
+  border-color: #ea580c;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.tshirt-asset-card--compact .tshirt-asset-card__frame {
+  aspect-ratio: 3/4;
+}
+
+.ord-products-tshirt-assets {
+  margin-top: 10px;
+  max-width: 320px;
+}
+
+.ord-products-tshirt-assets .tshirt-print-assets__hint {
+  display: none;
+}

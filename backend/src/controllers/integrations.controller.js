@@ -1,4 +1,6 @@
 import { invalidateMailTransporter, sendContactEmail, sendTestEmail } from '../services/mail.service.js';
+import { testShiprocketConnection } from '../services/shipping.service.js';
+import { invalidateShiprocketToken } from '../services/shiprocket.service.js';
 import {
   getAdminIntegrationsView,
   getPublicContactSettings,
@@ -32,8 +34,20 @@ export const getAdminIntegrations = asyncHandler(async (_req, res) => {
 export const updateAdminIntegrations = asyncHandler(async (req, res) => {
   await updateStoreSettings(req.body);
   invalidateMailTransporter();
+  invalidateShiprocketToken();
   const integrations = await getAdminIntegrationsView();
   res.json({ success: true, integrations, message: 'Integration settings saved.' });
+});
+
+export const testAdminShiprocket = asyncHandler(async (_req, res) => {
+  const result = await testShiprocketConnection();
+  res.json({
+    success: true,
+    message: result.pickupLocation
+      ? `Shiprocket connected. Pickup location: ${result.pickupLocation}`
+      : 'Shiprocket connected. Add SHIPROCKET_PICKUP_LOCATION in .env or pick a warehouse in Shiprocket panel.',
+    ...result,
+  });
 });
 
 export const sendAdminTestEmail = asyncHandler(async (req, res) => {

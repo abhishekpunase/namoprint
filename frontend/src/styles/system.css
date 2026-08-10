@@ -1,0 +1,96 @@
+/* System module — sys-* prefix */
+.sys-page { display: grid; gap: 20px; animation: dash-fade-in 0.35s ease; padding-bottom: 32px; }
+.sys-page-header h1 { margin: 0; font-size: clamp(1.5rem, 2.5vw, 2rem); }
+.sys-page-header p { margin: 6px 0 0; color: var(--admin-text-muted); font-size: 0.875rem; }
+.sys-breadcrumb { display: flex; gap: 8px; font-size: 0.8125rem; color: var(--admin-text-muted); margin-bottom: 8px; }
+.sys-breadcrumb a:hover { color: var(--admin-primary); }
+
+.sys-main-tabs { display: flex; flex-wrap: wrap; gap: 8px; overflow-x: auto; }
+.sys-main-tab { min-height: 40px; padding: 0 16px; border: 1px solid var(--admin-border); border-radius: 10px; background: var(--admin-surface); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sys-main-tab.is-active { border-color: var(--admin-primary); background: var(--admin-primary-soft); color: var(--admin-primary-strong); }
+
+.sys-dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.sys-stat-card { padding: 14px; border-radius: 14px; border: 1px solid var(--admin-border); background: linear-gradient(135deg, var(--admin-surface), var(--admin-surface-muted)); display: grid; gap: 4px; }
+.sys-stat-card:hover { transform: translateY(-2px); box-shadow: var(--admin-shadow-sm); transition: transform 0.2s; }
+.sys-stat-card span { font-size: 0.75rem; color: var(--admin-text-muted); }
+.sys-stat-card strong { font-size: 1.05rem; }
+
+.sys-panel { padding: 20px; border: 1px solid var(--admin-border); border-radius: 16px; background: var(--admin-surface); box-shadow: var(--admin-shadow-sm); }
+.sys-panel h2 { margin: 0 0 12px; font-size: 1rem; }
+
+.sys-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 16px; border-radius: 14px; border: 1px solid var(--admin-border); background: var(--admin-surface-muted); }
+.sys-filters label { display: grid; gap: 6px; font-size: 0.75rem; font-weight: 600; color: var(--admin-text-muted); }
+.sys-filters select, .sys-filters input { min-height: 38px; padding: 0 10px; border: 1px solid var(--admin-border); border-radius: 8px; background: var(--admin-surface); color: var(--admin-text); }
+.sys-search { flex: 1; min-width: min(100%, 280px); }
+.sys-search input { width: 100%; min-height: 40px; padding: 0 12px; border: 1px solid var(--admin-border); border-radius: 10px; background: var(--admin-surface); }
+
+.sys-table-wrap { overflow: auto; max-height: 560px; border: 1px solid var(--admin-border); border-radius: 12px; }
+.sys-table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: 0.8125rem; }
+.sys-table th, .sys-table td { padding: 10px 12px; border-bottom: 1px solid var(--admin-border); text-align: left; vertical-align: middle; }
+.sys-table thead { position: sticky; top: 0; background: var(--admin-surface-muted); z-index: 1; }
+.sys-table__row:hover { background: var(--admin-surface-muted); }
+
+.sys-badge { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 0.6875rem; font-weight: 600; background: var(--admin-primary-soft); color: var(--admin-primary-strong); text-transform: capitalize; }
+.sys-status { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; }
+.sys-status--success { background: #dcfce7; color: #166534; }
+.sys-status--failed { background: #fef2f2; color: #b91c1c; }
+
+.sys-cards--mobile { display: none; gap: 10px; margin-top: 12px; }
+.sys-card-row { padding: 14px; border: 1px solid var(--admin-border); border-radius: 12px; background: var(--admin-surface-muted); }
+.sys-card-row__head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+
+.sys-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid transparent; font-weight: 600; cursor: pointer; }
+.sys-btn--primary { background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-strong)); color: #fff; }
+.sys-btn--ghost { border-color: var(--admin-border); background: var(--admin-surface); color: var(--admin-text); }
+.sys-btn--sm { min-height: 32px; padding: 0 10px; font-size: 0.8125rem; }
+
+.sys-empty { padding: 32px; text-align: center; color: var(--admin-text-muted); display: grid; gap: 8px; justify-items: center; }
+.sys-message { padding: 10px 14px; border-radius: 10px; background: var(--admin-primary-soft); }
+.sys-message--err { background: #fef2f2; color: #b91c1c; }
+.sys-todo-hint { font-size: 0.8125rem; color: var(--admin-text-muted); padding: 10px 12px; border: 1px dashed var(--admin-border); border-radius: 10px; background: var(--admin-surface-muted); }
+.sys-skeleton { border-radius: 12px; background: linear-gradient(90deg, var(--admin-surface-muted) 25%, var(--admin-surface) 50%, var(--admin-surface-muted) 75%); background-size: 200% 100%; animation: sys-shimmer 1.2s infinite; min-height: 80px; }
+@keyframes sys-shimmer { to { background-position: -200% 0; } }
+
+.sys-session-list { display: grid; gap: 10px; }
+.sys-session { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; padding: 14px; border: 1px solid var(--admin-border); border-radius: 12px; align-items: center; }
+.sys-session.is-current { border-color: var(--admin-primary); background: var(--admin-primary-soft); }
+.sys-session__icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--admin-surface); }
+.sys-session__body p { margin: 4px 0; font-size: 0.8125rem; color: var(--admin-text-muted); }
+
+.sys-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 320px; overflow: auto; }
+.sys-timeline li { padding: 10px 12px; border-left: 3px solid var(--admin-primary); background: var(--admin-surface-muted); border-radius: 0 10px 10px 0; font-size: 0.8125rem; }
+.sys-timeline time { display: block; font-size: 0.75rem; color: var(--admin-text-muted); margin-top: 4px; }
+
+.sys-backup-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.sys-backup-btn { display: grid; gap: 6px; padding: 16px; border: 1px solid var(--admin-border); border-radius: 12px; background: var(--admin-surface-muted); cursor: pointer; text-align: left; color: inherit; }
+.sys-backup-btn:hover { border-color: var(--admin-primary); }
+.sys-backup-btn span { font-size: 0.75rem; color: var(--admin-text-muted); }
+
+.sys-health-banner { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; font-size: 0.875rem; margin-bottom: 12px; }
+.sys-health-banner--healthy { background: #dcfce7; color: #166534; }
+.sys-health-banner--warning { background: #fef9c3; color: #854d0e; }
+.sys-health-banner--critical { background: #fef2f2; color: #b91c1c; }
+
+.sys-log-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sys-log-list { list-style: none; margin: 0; padding: 0; font-size: 0.75rem; max-height: 160px; overflow: auto; }
+.sys-log-list li { padding: 6px 0; border-bottom: 1px solid var(--admin-border); display: grid; gap: 2px; }
+.sys-log-list code { word-break: break-all; }
+.sys-log-list time { color: var(--admin-text-muted); }
+.sys-muted { color: var(--admin-text-muted); font-size: 0.8125rem; }
+
+.sys-opt-list { display: grid; gap: 8px; }
+.sys-opt-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid var(--admin-border); border-radius: 10px; background: var(--admin-surface-muted); }
+
+.sys-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.sys-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: 0.8125rem; color: var(--admin-text-muted); }
+
+@media (max-width: 767px) {
+  .sys-table-wrap { display: none; }
+  .sys-cards--mobile { display: grid; }
+  .sys-session { grid-template-columns: auto 1fr; }
+}
+
+@media (max-width: 480px) {
+  .sys-main-tab { padding: 0 12px; font-size: 0.8125rem; }
+  .sys-filters { flex-direction: column; align-items: stretch; }
+}

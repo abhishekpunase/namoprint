@@ -2,10 +2,7 @@ import { env } from '../config/env.js';
 import { StoreSettings } from '../models/StoreSettings.js';
 
 export async function ensureStoreSettings() {
-  const existing = await StoreSettings.findOne({ key: 'store' });
-  if (existing) return;
-
-  await StoreSettings.create({
+  const defaults = {
     key: 'store',
     razorpay: {
       enabled: Boolean(env.razorpay.keyId && env.razorpay.keySecret),
@@ -35,7 +32,32 @@ export async function ensureStoreSettings() {
       whatsappNumber: '919098570277',
       address: 'Indore, Madhya Pradesh, India',
     },
-  });
+  };
 
-  console.log('Store integrations settings seeded from environment.');
+  let doc = await StoreSettings.findOne({ key: 'store' });
+  if (!doc) {
+    await StoreSettings.create(defaults);
+    console.log('Store integrations settings seeded from environment.');
+    return;
+  }
+
+  let changed = false;
+  if (env.shiprocket.email && env.shiprocket.password) {
+    if (!doc.shiprocket.email) {
+      doc.shiprocket.email = env.shiprocket.email;
+      changed = true;
+    }
+    if (!doc.shiprocket.password) {
+      doc.shiprocket.password = env.shiprocket.password;
+      changed = true;
+    }
+    if (doc.shiprocket.enabled === false) {
+      doc.shiprocket.enabled = true;
+      changed = true;
+    }
+  }
+  if (changed) {
+    await doc.save();
+    console.log('Shiprocket credentials synced from environment.');
+  }
 }

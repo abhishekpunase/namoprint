@@ -1,5 +1,6 @@
 import dns from 'dns';
 import fs from 'fs';
+import net from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
@@ -20,6 +21,12 @@ const connectOptions = {
   family: 4,
 };
 
+const devConnectOptions = {
+  ...connectOptions,
+  directConnection: true,
+  maxPoolSize: 10,
+};
+
 function maskUri(uri = '') {
   return typeof uri === 'string' ? uri.replace(/\/\/.*@/, '//<credentials>@') : uri;
 }
@@ -35,7 +42,23 @@ function printAtlasHelp() {
   console.error('--------------------------------------\n');
 }
 
-/** Dev only — recover from crashed mongod leaving mongod.lock behind */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isDevMongoPortOpen(timeoutMs = 2000) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port: DEV_MONGO_PORT });
+    const done = (value) => {
+      socket.destroy();
+      resolve(value);
+    };
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+    setTimeout(() => done(false), timeoutMs);
+  });
+}
+
 function tryClearStaleLock(dbPath) {
   const lockFile = path.join(dbPath, 'mongod.lock');
   if (!fs.existsSync(lockFile)) return;
@@ -47,88 +70,151 @@ function tryClearStaleLock(dbPath) {
   }
 }
 
-/** Connect to an already-running local dev mongod (e.g. after nodemon restart). */
-async function tryReuseDevMongo() {
-  if (mongoose.connection.readyState === 1) return true;
-  try {
-    await mongoose.connect(DEV_MONGO_URI, { ...connectOptions, serverSelectionTimeoutMS: 4000 });
-    console.log('MongoDB connected (reused running local dev instance)');
-    console.log(`User data saved on disk: ${PERSISTENT_DEV_DB_PATH}`);
-    return true;
-  } catch {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect().catch(() => {});
-    }
-    return false;
+async function verifyMongoPing() {
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error('MongoDB is not connected');
   }
+  await mongoose.connection.db.admin().ping();
 }
 
-async function startPersistentDevMongo(retryOnLock = true) {
+/** Connect to an already-running local dev mongod (e.g. after nodemon restart). */
+async function tryReuseDevMongo(attempts = 4, options = devConnectOptions) {
+  if (mongoose.connection.readyState === 1) return true;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      await mongoose.connect(DEV_MONGO_URI, {
+        ...options,
+        serverSelectionTimeoutMS: 8000,
+      });
+      console.log('MongoDB connected (reused running local dev instance)');
+      console.log(`User data saved on disk: ${PERSISTENT_DEV_DB_PATH}`);
+      return true;
+    } catch {
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect().catch(() => {});
+      }
+      if (attempt < attempts - 1) {
+        await sleep(1000);
+      }
+    }
+  }
+
+  return false;
+}
+
+async function startPersistentDevMongo() {
   fs.mkdirSync(PERSISTENT_DEV_DB_PATH, { recursive: true });
 
-  if (await tryReuseDevMongo()) return;
+  for (let round = 0; round < 40; round += 1) {
+    if (await tryReuseDevMongo(3)) {
+      await verifyMongoPing();
+      return;
+    }
+    if (await isDevMongoPortOpen()) {
+      await sleep(2000);
+      continue;
+    }
+    break;
+  }
+
+  if (mongoose.connection.readyState === 1) return;
+
+  if (await isDevMongoPortOpen()) {
+    throw new Error(
+      'Local MongoDB is running but the API could not connect. Close all backend terminals, wait 5 seconds, then run: npm run dev',
+    );
+  }
+
+  tryClearStaleLock(PERSISTENT_DEV_DB_PATH);
+  await sleep(1500);
 
   const { MongoMemoryServer } = await import('mongodb-memory-server');
 
-  const createServer = () =>
-    MongoMemoryServer.create({
+  try {
+    memoryServer = await MongoMemoryServer.create({
       instance: {
         dbPath: PERSISTENT_DEV_DB_PATH,
         port: DEV_MONGO_PORT,
       },
-      startTimeout: 60000,
+      startTimeout: 120000,
     });
-
-  try {
-    memoryServer = await createServer();
   } catch (err) {
     const lockBusy =
       String(err?.message || err).includes('DBPathInUse') ||
       String(err?.message || err).includes('lock file');
 
-    if (lockBusy && (await tryReuseDevMongo())) return;
-
-    if (retryOnLock && lockBusy) {
-      tryClearStaleLock(PERSISTENT_DEV_DB_PATH);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      try {
-        memoryServer = await createServer();
-      } catch (retryErr) {
-        if (await tryReuseDevMongo()) return;
-        throw retryErr;
+    if (lockBusy && (await isDevMongoPortOpen())) {
+      for (let i = 0; i < 20; i += 1) {
+        if (await tryReuseDevMongo(3)) {
+          await verifyMongoPing();
+          return;
+        }
+        await sleep(2000);
       }
-    } else {
-      throw err;
     }
+
+    throw new Error(
+      'Could not start local MongoDB. Close other backend terminals and run: npm run dev',
+    );
   }
 
-  await mongoose.connect(DEV_MONGO_URI, connectOptions);
+  await mongoose.connect(DEV_MONGO_URI, devConnectOptions);
   console.log('MongoDB connected (persistent local dev database)');
   console.log(`User data saved on disk: ${PERSISTENT_DEV_DB_PATH}`);
+  await verifyMongoPing();
+}
+
+function isDockerRuntime() {
+  try {
+    return fs.existsSync('/.dockerenv');
+  } catch {
+    return false;
+  }
+}
+
+function shouldUseMemoryMongo() {
+  if (process.env.USE_MEMORY_MONGO !== 'true') return false;
+  if (env.nodeEnv === 'production') {
+    console.warn('USE_MEMORY_MONGO is ignored in production — using MONGO_URI.');
+    return false;
+  }
+  if (isDockerRuntime()) {
+    console.warn(
+      'USE_MEMORY_MONGO is disabled in Docker — set MONGO_URI to Atlas or a Mongo service.',
+    );
+    return false;
+  }
+  return true;
+}
+
+async function connectCloudMongo() {
+  await mongoose.connect(env.mongoUri, connectOptions);
+  console.log('MongoDB connected (Atlas / cloud)');
+  await verifyMongoPing();
 }
 
 export const connectDb = async () => {
   dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
   mongoose.set('strictQuery', true);
 
-  if (mongoose.connection.readyState === 1) {
-    return;
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect().catch(() => {});
   }
 
-  if (process.env.USE_MEMORY_MONGO === 'true') {
+  if (shouldUseMemoryMongo()) {
     await startPersistentDevMongo();
     return;
   }
 
   try {
-    await mongoose.connect(env.mongoUri, connectOptions);
-    console.log('MongoDB connected (Atlas / cloud)');
+    await connectCloudMongo();
     return;
   } catch (err) {
     console.error('MongoDB connection failed for', maskUri(env.mongoUri));
     console.error(err?.message || err);
 
-    if (env.nodeEnv !== 'development') {
+    if (env.nodeEnv !== 'development' || isDockerRuntime()) {
       printAtlasHelp();
       throw err;
     }
@@ -147,7 +233,7 @@ export const connectDb = async () => {
 };
 
 export const disconnectDb = async () => {
-  await mongoose.disconnect();
+  await mongoose.disconnect().catch(() => {});
   if (memoryServer) {
     await memoryServer.stop();
     memoryServer = null;
