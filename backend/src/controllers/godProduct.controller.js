@@ -17,6 +17,7 @@ export const listGodProducts = asyncHandler(async (req, res) => {
     GodProduct.countDocuments(filter)
   ]);
 
+  res.set('Cache-Control', 'no-store');
   res.json({ success: true, items, pagination: { page, limit, total } });
 });
 

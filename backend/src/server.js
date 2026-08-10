@@ -15,6 +15,8 @@ import {
   ensurePenPrints,
   ensureUvDtfStickers,
   ensureProductLabelStickers,
+  ensureGodProducts,
+  ensureNamePlateProducts,
 } from './config/seedDev.js';
 
 const start = async () => {
@@ -32,6 +34,8 @@ const start = async () => {
   await ensurePenPrints();
   await ensureUvDtfStickers();
   await ensureProductLabelStickers();
+  await ensureGodProducts();
+  await ensureNamePlateProducts();
 
   const server = app.listen(env.port);
 

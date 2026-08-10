@@ -44,7 +44,7 @@ export const godProductListSchema = Joi.object({
   query: Joi.object({
     q: Joi.string().allow('', null),
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20)
+    limit: Joi.number().integer().min(1).max(500).default(20)
   })
 });
 

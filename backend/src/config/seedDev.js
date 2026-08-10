@@ -12,6 +12,8 @@ import { ensurePenPrints } from './seedPenPrints.js';
 import { ensureUvDtfStickers } from './seedUvDtfStickers.js';
 import { ensureProductLabelStickers } from './seedProductLabelStickers.js';
 import { ensureStoreSettings } from './seedStoreSettings.js';
+import { ensureGodProducts } from './seedGodProducts.js';
+import { ensureNamePlateProducts } from './seedNamePlateProducts.js';
 
 export {
   ensureDevCatalog,
@@ -28,6 +30,8 @@ export {
   ensurePenPrints,
   ensureUvDtfStickers,
   ensureProductLabelStickers,
+  ensureGodProducts,
+  ensureNamePlateProducts,
 };
 
 const DEV_USERS = [
