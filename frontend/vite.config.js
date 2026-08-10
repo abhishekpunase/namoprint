@@ -5,8 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiTarget = (env.VITE_DEV_API_TARGET || 'http://localhost:5000').replace(/\/+$/, '')
-
+  const apiTarget = (env.VITE_DEV_API_TARGET || 'http://localhost:5000')
+  console.log(`Vite dev server proxying API requests to: ${apiTarget}`)
   return {
     plugins: [react(), tailwindcss()],
     server: {
