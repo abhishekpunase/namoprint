@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "node scripts/predev.js && nodemon src/server.js",
     "dev:clean": "node scripts/predev.js && nodemon src/server.js",
-    "prestart": "npm run build:frontend",
     "start": "node src/server.js",
     "check:production": "node scripts/check-production-env.js",
     "seed": "node src/scripts/seed.js",
