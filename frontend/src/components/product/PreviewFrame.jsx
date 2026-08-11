@@ -324,38 +324,62 @@ function PhotoSlot({
 
   const handlePointerMove = (e) => {
     const ds = dragRef.current
-    if (!ds) return
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    const dxPct = (clientX - ds.startX) / ds.rectW
-    const dyPct = (clientY - ds.startY) / ds.rectH
+    if (!ds || e.pointerId !== ds.pointerId) return
+
+    const dx = e.clientX - ds.startX
+    const dy = e.clientY - ds.startY
+    if (!ds.moved) {
+      if (Math.hypot(dx, dy) < 6) return
+      ds.moved = true
+    }
+
+    e.preventDefault()
+    const dxPct = dx / ds.rectW
+    const dyPct = dy / ds.rectH
     emitCrop({
       x: clampCrop(ds.origX + dxPct * 5, -2.5, 2.5),
       y: clampCrop(ds.origY + dyPct * 5, -2.5, 2.5),
     })
   }
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e) => {
+    const ds = dragRef.current
+    if (!ds || e.pointerId !== ds.pointerId) return
     dragRef.current = null
-    window.removeEventListener('pointermove', handlePointerMove)
-    window.removeEventListener('pointerup', handlePointerUp)
-    window.removeEventListener('touchmove', handlePointerMove)
-    window.removeEventListener('touchend', handlePointerUp)
+    try {
+      containerRef.current?.releasePointerCapture(e.pointerId)
+    } catch {
+      /* ignore */
+    }
   }
 
   const handlePointerDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
     onActivate?.()
     if (!draggable || !src) return
+
     e.stopPropagation()
+    e.preventDefault()
+
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY
-    dragRef.current = { startX: clientX, startY: clientY, origX: effCrop.x || 0, origY: effCrop.y || 0, rectW: rect.width, rectH: rect.height }
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-    window.addEventListener('touchmove', handlePointerMove, { passive: false })
-    window.addEventListener('touchend', handlePointerUp)
+
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+      origX: effCrop.x || 0,
+      origY: effCrop.y || 0,
+      rectW: rect.width,
+      rectH: rect.height,
+    }
+
+    try {
+      containerRef.current?.setPointerCapture(e.pointerId)
+    } catch {
+      /* ignore */
+    }
   }
 
   const handleWheel = (e) => {
@@ -374,7 +398,9 @@ function PhotoSlot({
       className={`preview-slot preview-slot--clip group relative ${shapedSlot ? 'preview-slot--shaped' : ''} ${isActive ? 'preview-slot--active' : ''}`}
       onClick={!draggable ? onClick : undefined}
       onPointerDown={handlePointerDown}
-      onTouchStart={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onWheel={handleWheel}
       style={{
         cursor: draggable && src ? 'grab' : onClick ? 'pointer' : 'default',
@@ -1142,10 +1168,10 @@ export function PreviewFrame({
   const stageMaxWidth = minimal
     ? '100%'
     : isPortraitCollage
-      ? 'min(100%, 380px)'
+      ? 'min(100%, min(380px, 92vw))'
       : useCanvasAspect
-        ? 'min(100%, 480px)'
-        : 'min(100%, 420px)'
+        ? 'min(100%, min(480px, 92vw))'
+        : 'min(100%, min(420px, 92vw))'
 
   const photoBoxStyle = photoBoxToStyle(effectiveLayoutBox, layoutCanvas, boxStyleOptions)
 
@@ -1274,7 +1300,7 @@ export function PreviewFrame({
       : finishStyle.shadow
 
   return (
-    <div className="w-full max-w-full">
+    <div className="product-frame-stage w-full max-w-full">
       {/* ---------- Toolbar ---------- */}
       {!compact && (
         <div className="mb-4 flex flex-nowrap items-center gap-2 overflow-x-auto rounded-2xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm scrollbar-hide sm:flex-wrap sm:gap-3 sm:px-4 sm:py-3">
@@ -1428,7 +1454,7 @@ export function PreviewFrame({
             aspectRatio: aspect,
             width: showClockDial ? stageMaxWidth : '100%',
             maxWidth: stageMaxWidth,
-            maxHeight: showClockDial ? stageMaxWidth : isPortraitCollage ? 'min(72vh, 720px)' : undefined,
+            maxHeight: showClockDial ? stageMaxWidth : isPortraitCollage ? 'min(70dvh, 720px)' : undefined,
             margin: showClockDial || isPortraitCollage ? '0 auto' : undefined,
             flexShrink: showClockDial ? 0 : undefined,
             position: 'relative',

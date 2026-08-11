@@ -7,7 +7,6 @@ import { api } from '../services/api'
 import { mergeCatalogProducts } from '../utils/catalog'
 import { getDedicatedListingPath } from '../config/categoryRoutes'
 import { excludeWallWatchProducts } from '../utils/wallWatchCatalog'
-import heroProduct from '../assets/hero.png'
 
 export function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -65,36 +64,27 @@ export function CatalogPage() {
     <section className="min-h-screen bg-gradient-to-b from-orange-50 via-white to-white">
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400" />
-        <div className="relative mx-auto max-w-7xl px-6 py-20 lg:px-8">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div className="text-white">
-              <span className="inline-flex items-center rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur-md">
-                ✨ Product Studio
-              </span>
-              <h1 className="mt-6 text-5xl font-bold leading-tight lg:text-6xl">
-                Design Products
-                <br />
-                <span className="text-yellow-200">That Everyone Loves</span>
-              </h1>
-              <p className="mt-6 max-w-xl text-lg text-orange-100">
-                Choose your favourite product, upload your design, customize it and order in minutes.
-              </p>
-              <button
-                type="button"
-                onClick={() => changeType('')}
-                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-orange-600 duration-300 hover:scale-105"
-              >
-                Explore Products
-                <FiArrowRight />
-              </button>
-            </div>
-            <div className="relative">
-              <img
-                src={heroProduct}
-                alt="Custom printed products"
-                className="mx-auto w-full max-w-lg drop-shadow-2xl"
-              />
-            </div>
+        <div className="relative mx-auto max-w-7xl px-6 py-16 text-center lg:px-8 lg:py-20">
+          <div className="mx-auto max-w-3xl text-white">
+            <span className="inline-flex items-center rounded-full bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur-md">
+              ✨ Product Studio
+            </span>
+            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+              Design Products
+              <br />
+              <span className="text-yellow-200">That Everyone Loves</span>
+            </h1>
+            <p className="mt-6 text-lg text-orange-100">
+              Choose your favourite product, upload your design, customize it and order in minutes.
+            </p>
+            <button
+              type="button"
+              onClick={() => changeType('')}
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-orange-600 duration-300 hover:scale-105"
+            >
+              Explore Products
+              <FiArrowRight />
+            </button>
           </div>
         </div>
       </div>

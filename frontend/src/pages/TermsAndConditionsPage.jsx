@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export function TermsAndConditionsPage() {
   const sections = [
     {
@@ -133,12 +135,12 @@ export function TermsAndConditionsPage() {
           <p className="text-gray-600 mb-6">
             Reach out to our team and we'll be happy to help.
           </p>
-          <a
-            href="/contact"
+          <Link
+            to="/contact"
             className="inline-block bg-black text-yellow-500 font-semibold px-8 py-3 rounded-full hover:bg-yellow-600 hover:text-black transition"
           >
             Contact Us
-          </a>
+          </Link>
         </div>
       </section>
     </div>

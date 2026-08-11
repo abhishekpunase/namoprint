@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export function ShippingPolicyPage() {
   const sections = [
     {
@@ -145,12 +147,12 @@ export function ShippingPolicyPage() {
             Our support team is happy to help track or resolve any shipping
             issue.
           </p>
-          <a
-            href="/contact"
+          <Link
+            to="/contact"
             className="inline-block bg-yellow-500 text-black font-semibold px-8 py-3 rounded-full hover:bg-yellow-400 transition"
           >
             Contact Us
-          </a>
+          </Link>
         </div>
       </section>
     </div>

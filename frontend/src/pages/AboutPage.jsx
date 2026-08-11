@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export function AboutPage() {
   return (
     <div className="bg-white">
@@ -105,11 +107,11 @@ export function AboutPage() {
           Get in touch with our team today and let's create something great.
         </p>
         
-         <a href="/contact"
+         <Link to="/contact"
           className="inline-block bg-black text-yellow-500 font-semibold px-8 py-3 rounded-full hover:bg-yellow-600 hover:text-black transition"
         >
           Contact Us
-        </a>
+        </Link>
       </section>
     </div>
   )

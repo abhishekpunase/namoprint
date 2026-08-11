@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminTheme } from '../../../hooks/useAdminTheme'
 import { ADMIN_BRAND_NAME, ADMIN_BRAND_TAGLINE } from '../../../config/adminBrand'
+import { BrandHomeLink } from '../../../components/layout/BrandLogo'
 
 function NavItem({ item, collapsed, onNavigate }) {
   const location = useLocation()
@@ -109,7 +110,7 @@ function SidebarInner({ collapsed, onNavigate }) {
   return (
     <>
       <div className="admin-v2-sidebar__brand">
-        <NavLink to="/admin" className="admin-v2-brand" onClick={onNavigate}>
+        <BrandHomeLink className="admin-v2-brand" onClick={onNavigate}>
           <span className="admin-v2-brand__mark">N</span>
           {!collapsed ? (
             <span className="admin-v2-brand__copy">
@@ -117,7 +118,7 @@ function SidebarInner({ collapsed, onNavigate }) {
               <small>{ADMIN_BRAND_TAGLINE}</small>
             </span>
           ) : null}
-        </NavLink>
+        </BrandHomeLink>
         {!isDrawer ? (
           <button
             type="button"

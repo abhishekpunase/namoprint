@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FiLock, FiMail, FiShield } from 'react-icons/fi'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { BrandLogo } from '../../components/layout/BrandLogo'
 import { useAuth } from '../../hooks/useAuth'
 import { recordLoginFailure } from '../../utils/systemAdminUtils'
 import { checkApiHealth } from '../../services/api'
@@ -86,8 +87,13 @@ export function AdminLoginPage() {
           onSubmit={submit}
           className="rounded-3xl border border-white/20 bg-white/80 p-8 shadow-2xl backdrop-blur-xl"
         >
+          {/* Logo */}
+          <div className="flex justify-center">
+            <BrandLogo imgClassName="h-14 w-auto object-contain" />
+          </div>
+
           {/* Icon */}
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 text-orange-500 shadow-lg">
+          <div className="mx-auto mt-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-500 shadow-lg">
             <FiShield size={38} />
           </div>
   

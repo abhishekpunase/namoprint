@@ -9,7 +9,7 @@ import {
   FiPercent,
   FiChevronDown,
 } from "react-icons/fi";
-import logo from "../../assets/logo-namo.jpeg";
+import { BrandLogo } from "./BrandLogo";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
@@ -127,17 +127,7 @@ export function Header() {
 <header className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
   <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-2 px-4 sm:h-20 sm:gap-3 sm:px-6">
     {/* Logo — left */}
-    <Link
-      to="/"
-      aria-label="Namo Prints — go to home"
-      className="shrink-0 transition hover:opacity-90"
-    >
-      <img
-        src={logo}
-        alt="Namo Prints"
-        className="h-10 w-auto object-contain sm:h-11 md:h-12"
-      />
-    </Link>
+    <BrandLogo onClick={() => setOpen(false)} />
 
     {/* Nav — flex middle (no absolute overlap) */}
     <nav

@@ -349,7 +349,7 @@ export function ProductDesignerPage({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
         {/* Left — preview + photo adjust */}
         <div className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-50 via-fuchsia-50 to-amber-50 p-3 shadow-md sm:p-5">
+          <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-50 via-fuchsia-50 to-amber-50 p-2 shadow-md sm:p-5 overflow-x-clip">
             {mockupLoading ? (
               <div className="flex h-[320px] items-center justify-center text-sm text-slate-500">
                 Detecting photo slots from mockup frame…

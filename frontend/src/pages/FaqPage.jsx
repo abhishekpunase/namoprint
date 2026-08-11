@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export function FaqPage() {
   const [openIndex, setOpenIndex] = useState(0)
@@ -144,12 +145,12 @@ export function FaqPage() {
             Can't find the answer you're looking for? Our team is just a
             message away.
           </p>
-          <a
-            href="/contact"
+          <Link
+            to="/contact"
             className="inline-block bg-black text-yellow-500 font-semibold px-8 py-3 rounded-full hover:bg-yellow-600 hover:text-black transition"
           >
             Contact Us
-          </a>
+          </Link>
         </div>
       </section>
     </div>

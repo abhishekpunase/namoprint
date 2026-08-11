@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getAdminPageMeta } from '../../../config/adminNavigation'
 import { ADMIN_BRAND_NAME } from '../../../config/adminBrand'
+import { BrandHomeLink } from '../../../components/layout/BrandLogo'
 import { useAuth } from '../../../hooks/useAuth'
 import { useAdminTheme } from '../../../hooks/useAdminTheme'
 import { EmptyState } from '../ui/EmptyState'
@@ -90,10 +91,10 @@ export function AdminNavbar() {
           </button>
         ) : null}
 
-        <Link to="/admin" className="admin-v2-navbar__logo" aria-label={`${ADMIN_BRAND_NAME} Admin home`}>
+        <BrandHomeLink className="admin-v2-navbar__logo">
           <span className="admin-v2-brand__mark">N</span>
           {isMobile ? null : <strong>{ADMIN_BRAND_NAME}</strong>}
-        </Link>
+        </BrandHomeLink>
 
         <div className="admin-v2-navbar__title-block">
           <h1 className="admin-v2-navbar__title">{pageMeta.title}</h1>

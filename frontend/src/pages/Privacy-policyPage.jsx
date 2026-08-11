@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export function PrivacyPolicyPage() {
   const sections = [
     {
@@ -121,12 +123,12 @@ export function PrivacyPolicyPage() {
             Our team is happy to help clarify anything related to your
             privacy.
           </p>
-          <a
-            href="/contact"
+          <Link
+            to="/contact"
             className="inline-block bg-black text-yellow-500 font-semibold px-8 py-3 rounded-full hover:bg-yellow-600 hover:text-black transition"
           >
             Contact Us
-          </a>
+          </Link>
         </div>
       </section>
     </div>

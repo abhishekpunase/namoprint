@@ -6,6 +6,7 @@ import {
   FiChevronUp,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { BrandHomeLink } from "./BrandLogo";
 import { resolveCategoryLink } from "../../config/categoryRoutes";
 
 // export default function Footer() {
@@ -44,7 +45,7 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Company */}
           <div>
-            <Link to="/" className="flex items-center gap-3 mb-8">
+            <BrandHomeLink className="flex items-center gap-3 mb-8">
               <div className="w-14 h-14 rounded-full bg-gradient-to-r from-pink-500 to-orange-400 flex items-center justify-center font-bold text-2xl">
                 N
               </div>
@@ -52,7 +53,7 @@ export function Footer() {
               <h2 className="text-3xl font-bold">
                 Namo <span className="font-semibold">Print</span>
               </h2>
-            </Link>
+            </BrandHomeLink>
 
             <p className="text-gray-300 leading-9 text-base">
               India's trusted online printing partner for T-Shirts, Photo
