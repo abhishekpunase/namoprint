@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
+import { useRef, useState, useCallback, useMemo } from 'react'
 import {
   Grid3X3,
   Maximize2,
@@ -10,7 +10,7 @@ import {
   ImagePlus,
   Frame,
 } from 'lucide-react'
-import { getObjectContainFit, photoBoxToStyle, resolveMockupLayout } from '../../../../utils/mockupLayout'
+import { photoBoxToStyle } from '../../../../utils/mockupLayout'
 
 export function PreviewToolbar({
   zoom,
@@ -81,25 +81,12 @@ export function CanvasPreview({
   const canvasW = Number(mockupValue.canvasWidth || 1000)
   const canvasH = Number(mockupValue.canvasHeight || 1000)
   const mockupCanvas = useMemo(() => ({ width: canvasW, height: canvasH }), [canvasW, canvasH])
-  const printBoxes =
-    mockupValue.multiSlot && mockupValue.photoBoxes?.length
-      ? mockupValue.photoBoxes
-      : [mockupValue.photoBox || {}]
-  const [layoutFit, setLayoutFit] = useState({ left: 0, top: 0, width: 100, height: 100 })
-
-  useEffect(() => {
-    let cancelled = false
-    resolveMockupLayout(form.frameImage, mockupCanvas, printBoxes)
-      .then((layout) => {
-        if (!cancelled) setLayoutFit(layout.fit || getObjectContainFit(mockupCanvas, mockupCanvas))
-      })
-      .catch(() => {
-        if (!cancelled) setLayoutFit(getObjectContainFit(mockupCanvas, mockupCanvas))
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [form.frameImage, mockupCanvas, printBoxes.length])
+  const printBoxes = useMemo(() => {
+    if (mockupValue.multiSlot && mockupValue.photoBoxes?.length) return mockupValue.photoBoxes
+    return [mockupValue.photoBox || {}]
+  }, [mockupValue.multiSlot, mockupValue.photoBoxes, mockupValue.photoBox])
+  // Match MockupEditor: canvas aspect stage = full-bleed slots (live sync, no letterbox drift)
+  const layoutFit = useMemo(() => ({ left: 0, top: 0, width: 100, height: 100 }), [])
 
   const boxStyle = (box) =>
     photoBoxToStyle(box, mockupCanvas, {
@@ -107,11 +94,12 @@ export function CanvasPreview({
       transparent: true,
     })
 
-  const heroImage = previewMode === 'mockup' && form.frameImage
-    ? form.frameImage
+  const frameSrc = form.frameImage || mockupValue.frameImage
+  const heroImage = previewMode === 'mockup' && frameSrc
+    ? frameSrc
     : form.thumbnail || form.images?.[0]
 
-  const hasVisual = Boolean(heroImage || form.frameImage)
+  const hasVisual = Boolean(heroImage || frameSrc)
   const busy = uploading || analyzing
 
   const toggleFullscreen = () => {
@@ -190,32 +178,27 @@ export function CanvasPreview({
           style={{
             transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
             aspectRatio: `${canvasW} / ${canvasH}`,
+            width: isFullscreen
+              ? `min(100%, ${(Math.min(window.innerHeight - 120, canvasH) * canvasW) / Math.max(canvasH, 1)}px)`
+              : `min(100%, ${(300 * canvasW) / Math.max(canvasH, 1)}px)`,
+            maxHeight: isFullscreen ? 'calc(100vh - 120px)' : 300,
+            height: 'auto',
           }}
         >
           {showGrid && <div className="peditor-preview__grid" aria-hidden="true" />}
 
-          {form.frameImage && previewMode !== 'gallery' && (
-            <div
-              className="peditor-preview__fit"
-              style={{
-                left: `${layoutFit.left}%`,
-                top: `${layoutFit.top}%`,
-                width: `${layoutFit.width}%`,
-                height: `${layoutFit.height}%`,
-              }}
-            >
-              <img src={form.frameImage} alt="" className="peditor-preview__frame" />
-            </div>
+          {frameSrc && previewMode !== 'gallery' && (
+            <img src={frameSrc} alt="" className="peditor-preview__frame" />
           )}
 
-          {heroImage && !form.frameImage && (
+          {heroImage && !frameSrc && (
             <img src={heroImage} alt="" className="peditor-preview__hero" />
           )}
 
-          {showPrintArea && form.frameImage &&
+          {showPrintArea && frameSrc &&
             printBoxes.map((box, index) => (
               <div
-                key={index}
+                key={`${index}-${box.x}-${box.y}-${box.width}-${box.height}`}
                 className="peditor-preview__print-area"
                 style={boxStyle(box)}
                 aria-hidden="true"

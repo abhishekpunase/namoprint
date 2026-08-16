@@ -116,10 +116,18 @@ export function isHexFrameProduct(product) {
   return /\b(hex|hexa|hexagonal|honeycomb)\b/.test(text)
 }
 
-/** Apply hex clip only when the slot shape (or product) is hex — otherwise keep square/rect. */
+/** Apply hex clip only when needed — never strip organic/admin clip paths. */
 export function finalizePhotoSlot(box, { forceHex = false } = {}) {
   if (!box) return box
-  if (box.clipPath && isHexClipPath(box.clipPath)) return box
+
+  // Keep detected window shapes (hex, pebble, heart, etc.)
+  if (box.clipPath) {
+    return {
+      ...box,
+      borderRadius: 0,
+      rotate: box.rotate || 0,
+    }
+  }
 
   const fillRatio = Number(box.fillRatio)
   const shouldHex =

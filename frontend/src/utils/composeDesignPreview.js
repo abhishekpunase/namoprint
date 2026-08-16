@@ -2,7 +2,7 @@ import { resolveCollageMockup } from '../data/collageFrameMockup'
 import { getProductFrameImage, usesLiveProductImage } from '../data/fallbackCatalog'
 import { getMockupFrameUrl } from './enrichProductMockup'
 import { prepareFrameOverlayForExport, shouldPunchFrameHoles, inferSlotClipPathsFromFrame } from './frameImageUtils'
-import { getObjectContainFit, resolveMockupLayout } from './mockupLayout'
+import { resolveMockupLayout } from './mockupLayout'
 import { resolveMediaUrl } from './mediaUrl'
 import { drawClockFace, drawCssClockFrame, shouldShowClockDial } from './clockCanvasExport'
 import { HEX_PHOTO_FILL_SCALE, isHexClipPath } from './mockupSlotShapes'
@@ -78,7 +78,7 @@ function applyBoxClip(ctx, box) {
 function drawPhotoInBox(ctx, img, box, crop = {}) {
   const effCrop = { x: 0, y: 0, scale: 1, rotate: 0, ...crop }
   const hexSlot = isHexClipPath(box.clipPath)
-  const imgScale = (effCrop.scale || 1) * (hexSlot ? HEX_PHOTO_FILL_SCALE : 1)
+  const userScale = (effCrop.scale || 1) * (hexSlot ? HEX_PHOTO_FILL_SCALE : 1)
 
   ctx.save()
 
@@ -94,27 +94,44 @@ function drawPhotoInBox(ctx, img, box, crop = {}) {
 
   const iw = img.naturalWidth || img.width
   const ih = img.naturalHeight || img.height
-  const coverScale = Math.max(box.width / iw, box.height / ih) * imgScale
-  const dw = iw * coverScale
-  const dh = ih * coverScale
+  if (!iw || !ih || !box.width || !box.height) {
+    ctx.restore()
+    return
+  }
 
-  const posX = 0.5 - (effCrop.x || 0) * 0.2
-  const posY = 0.5 - (effCrop.y || 0) * 0.2
-  const centerX = box.x + posX * box.width
-  const centerY = box.y + posY * box.height
+  // CSS object-fit: cover
+  const cover = Math.max(box.width / iw, box.height / ih)
+  const scale = cover * userScale
+  const dw = iw * scale
+  const dh = ih * scale
 
-  ctx.translate(centerX, centerY)
+  // CSS object-position: (50 - x*20)% (50 - y*20)%
+  const posX = Math.min(1, Math.max(0, (50 - (effCrop.x || 0) * 20) / 100))
+  const posY = Math.min(1, Math.max(0, (50 - (effCrop.y || 0) * 20) / 100))
+  const dx = box.x + (box.width - dw) * posX
+  const dy = box.y + (box.height - dh) * posY
+
+  ctx.translate(cx, cy)
   ctx.rotate(((effCrop.rotate || 0) * Math.PI) / 180)
-  ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh)
+  ctx.translate(-cx, -cy)
+  ctx.drawImage(img, dx, dy, dw, dh)
   ctx.restore()
 }
 
 function resolvePhotoSources({ slotPhotos = [], design = {}, photoUrl }) {
-  if (slotPhotos.length) {
-    return slotPhotos.map((entry) => ({
-      url: entry?.url,
-      crop: entry?.crop,
-    }))
+  if (Array.isArray(slotPhotos) && slotPhotos.length) {
+    const byIndex = []
+    slotPhotos.forEach((entry, index) => {
+      if (!entry) return
+      const placementMatch = String(entry.placement || '').match(/slot-(\d+)/i)
+      const idx = placementMatch ? Number(placementMatch[1]) - 1 : index
+      if (idx < 0) return
+      byIndex[idx] = {
+        url: entry.url || entry.previewUrl || entry.optimizedUrl || '',
+        crop: entry.crop || design.crop,
+      }
+    })
+    return byIndex
   }
   const url = photoUrl || design.photoUrl
   if (url) return [{ url, crop: design.crop }]
@@ -175,16 +192,9 @@ async function drawFrameOverlay(ctx, frameUrl, canvas, layoutBoxes) {
   const frame = await loadImage(frameSrc)
   const cw = Math.max(1, Number(canvas.width) || 1)
   const ch = Math.max(1, Number(canvas.height) || 1)
-  const fw = frame.naturalWidth || frame.width || cw
-  const fh = frame.naturalHeight || frame.height || ch
 
-  const fit = getObjectContainFit({ width: cw, height: ch }, { width: fw, height: fh })
-  const x = (fit.left / 100) * cw
-  const y = (fit.top / 100) * ch
-  const dw = (fit.width / 100) * cw
-  const dh = (fit.height / 100) * ch
-
-  ctx.drawImage(frame, x, y, dw, dh)
+  // Match PreviewFrame object-fill — full canvas, no letterbox (keeps slots aligned)
+  ctx.drawImage(frame, 0, 0, cw, ch)
   return true
 }
 
@@ -237,7 +247,8 @@ export async function composeDesignPreview({
 
   const loadedPhotos = await Promise.all(
     layoutBoxes.map(async (_, index) => {
-      const src = sources[index]?.url || sources[0]?.url
+      // Only use this slot's photo — never copy slot-0 into empty collage windows
+      const src = sources[index]?.url || (!useCollageSlots ? sources[0]?.url : '')
       if (!src) return null
       try {
         return await loadImage(src)
@@ -253,7 +264,7 @@ export async function composeDesignPreview({
     for (let i = 0; i < layoutBoxes.length; i += 1) {
       const img = loadedPhotos[i]
       if (!img) continue
-      const crop = sources[i]?.crop || sources[0]?.crop || design.crop
+      const crop = sources[i]?.crop || (!useCollageSlots ? sources[0]?.crop || design.crop : { x: 0, y: 0, scale: 1, rotate: 0 })
       drawPhotoInBox(ctx, img, layoutBoxes[i], crop)
     }
 
@@ -270,7 +281,7 @@ export async function composeDesignPreview({
     for (let i = 0; i < layoutBoxes.length; i += 1) {
       const img = loadedPhotos[i]
       if (!img) continue
-      const crop = sources[i]?.crop || sources[0]?.crop || design.crop
+      const crop = sources[i]?.crop || (!useCollageSlots ? sources[0]?.crop || design.crop : { x: 0, y: 0, scale: 1, rotate: 0 })
       drawPhotoInBox(ctx, img, layoutBoxes[i], crop)
     }
 

@@ -245,18 +245,10 @@ export function CartProvider({ children }) {
         continue
       }
       const product = typeof item.product === 'object' ? item.product : { _id: item.product }
-      if (isDemoProductId(product?._id) && product?.slug) {
-        try {
-          const resolved = await resolveServerProduct(product, { _id: item.variantId, sku: item.variantSku })
-          resolvedItems.push({
-            ...item,
-            product: resolved.product,
-            variantId: resolved.variant._id,
-          })
-          continue
-        } catch {
-          // keep original item — handled below
-        }
+      // Frontend-only fallback products (demo-*) are not in the API — skip lookup to avoid 404 spam.
+      if (isDemoProductId(product?._id)) {
+        resolvedItems.push(item)
+        continue
       }
       resolvedItems.push(item)
     }

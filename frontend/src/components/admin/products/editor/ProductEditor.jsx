@@ -94,19 +94,30 @@ export function ProductEditor({ editor, mode = 'create', productId }) {
     })
   }
 
+  const applyDetectedSlots = (analysis, extra = {}) => {
+    const detected =
+      analysis.photoBoxes?.length > 1
+        ? analysis.photoBoxes
+        : analysis.photoBox
+          ? [analysis.photoBox]
+          : []
+    const multi = detected.length > 1
+    handleMockupChange({
+      ...extra,
+      canvasWidth: String(analysis.canvasWidth),
+      canvasHeight: String(analysis.canvasHeight),
+      photoBox: detected[0] || analysis.photoBox,
+      photoBoxes: multi ? detected : [],
+      multiSlot: multi,
+      slotCount: detected.length || analysis.slotCount || 1,
+    })
+  }
+
   const useImageAsMockupFrame = async (url) => {
     setAnalyzingFrame(true)
     try {
       const analysis = await analyzeMockupFromUrl(url, { forAdmin: true })
-      handleMockupChange({
-        frameImage: url,
-        canvasWidth: String(analysis.canvasWidth),
-        canvasHeight: String(analysis.canvasHeight),
-        photoBox: analysis.photoBox,
-        photoBoxes: analysis.photoBoxes,
-        multiSlot: analysis.multiSlot,
-        slotCount: analysis.slotCount,
-      })
+      applyDetectedSlots(analysis, { frameImage: url })
     } catch {
       handleMockupChange({ frameImage: url })
     } finally {
@@ -118,14 +129,7 @@ export function ProductEditor({ editor, mode = 'create', productId }) {
     setAnalyzingFrame(true)
     try {
       const analysis = await analyzeMockupFile(file, { forAdmin: true })
-      handleMockupChange({
-        canvasWidth: String(analysis.canvasWidth),
-        canvasHeight: String(analysis.canvasHeight),
-        photoBox: analysis.photoBox,
-        photoBoxes: analysis.photoBoxes,
-        multiSlot: analysis.multiSlot,
-        slotCount: analysis.slotCount,
-      })
+      applyDetectedSlots(analysis)
       const url = await handleFrameUpload(file)
       if (url) handleMockupChange({ frameImage: url })
     } catch {
@@ -293,8 +297,8 @@ export function ProductEditor({ editor, mode = 'create', productId }) {
         <button type="button" className={mobileTab === 'edit' ? 'is-active' : ''} onClick={() => setMobileTab('edit')}>Edit</button>
       </div>
 
-      <div className="peditor__layout peditor__layout--stacked">
-        <section className={`peditor__preview-pane ${mobileTab === 'preview' || mobileTab === 'edit' ? 'is-mobile-active' : ''}`}>
+      <div className="peditor__layout peditor__layout--studio">
+        <section className={`peditor__preview-pane ${mobileTab === 'preview' ? 'is-mobile-active' : ''}`}>
           <h2 className="peditor__section-title">Live product preview</h2>
           <CanvasPreview
             form={form}
@@ -309,7 +313,7 @@ export function ProductEditor({ editor, mode = 'create', productId }) {
         <section className={`peditor__mockup-pane ${mobileTab === 'edit' ? 'is-mobile-active' : ''}`}>
           <h2 className="peditor__section-title">Mockup & photo slots</h2>
           <p className="peditor-hint peditor__mockup-intro">
-            Upload collage frame, auto-detect every blank window, then drag each slot to fit.
+            Edit slots here — live preview updates instantly on the left.
           </p>
           <MockupEditor
             value={mockupValue}

@@ -151,7 +151,7 @@ export async function generateSmartMockupFromAnalysis(analysis, frameUrl) {
 }
 
 export async function generateSmartMockupFromFile(file) {
-  const analysis = await analyzeMockupFile(file)
+  const analysis = await analyzeMockupFile(file, { forAdmin: true })
   const frameUrl = URL.createObjectURL(file)
   try {
     return await generateSmartMockupFromAnalysis(analysis, frameUrl)
@@ -161,7 +161,7 @@ export async function generateSmartMockupFromFile(file) {
 }
 
 export async function generateSmartMockupFromUrl(url) {
-  const analysis = await analyzeMockupFromUrl(url)
+  const analysis = await analyzeMockupFromUrl(url, { forAdmin: true })
   return generateSmartMockupFromAnalysis(analysis, url)
 }
 

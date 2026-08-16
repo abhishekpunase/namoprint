@@ -275,19 +275,31 @@ export function AdminGodProductsPage() {
                             Cover
                           </button>
                         )}
-                        <button type="button" title="Move left" disabled={index === 0} onClick={() => moveImage(index, -1)}>
-                          <FiArrowLeft />
+                        <button
+                          type="button"
+                          title="Move left"
+                          aria-label="Move left"
+                          disabled={index === 0}
+                          onClick={() => moveImage(index, -1)}
+                        >
+                          <FiArrowLeft size={14} strokeWidth={2.5} />
                         </button>
                         <button
                           type="button"
                           title="Move right"
+                          aria-label="Move right"
                           disabled={index === form.images.length - 1}
                           onClick={() => moveImage(index, 1)}
                         >
-                          <FiArrowRight />
+                          <FiArrowRight size={14} strokeWidth={2.5} />
                         </button>
-                        <button type="button" title="Remove" onClick={() => removeImage(index)}>
-                          <FiTrash2 />
+                        <button
+                          type="button"
+                          title="Remove"
+                          aria-label="Remove image"
+                          onClick={() => removeImage(index)}
+                        >
+                          <FiTrash2 size={14} strokeWidth={2.5} />
                         </button>
                       </div>
                     </div>

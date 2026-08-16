@@ -1,8 +1,8 @@
 const mockupImages = {
-  portrait: '/mockups/frame-portrait.svg',
-  square: '/mockups/frame-square.svg',
-  aluminium: '/mockups/frame-aluminium.svg',
-  collage: '/mockups/frame-collage.svg',
+  portrait: '/products/mockups/frame-portrait.svg',
+  square: '/products/mockups/frame-square.svg',
+  aluminium: '/products/mockups/frame-aluminium.svg',
+  collage: '/products/mockups/frame-collage.svg',
 }
 export const THICKNESS_MAP = {
   '3mm': { label: '3mm', px: 6 },
