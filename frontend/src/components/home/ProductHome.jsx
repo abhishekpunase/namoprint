@@ -81,7 +81,10 @@ export default function ProductHome() {
         const merged = excludeWallWatchProducts(mergeCatalogProducts(payload.items));
         setProducts(merged);
         setAllProducts(merged);
-        setVisibleCount(merged.length);
+        // Keep initial page small on mobile — loading every card at once freezes the UI.
+        const isNarrow =
+          typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+        setVisibleCount(Math.min(merged.length, isNarrow ? 6 : 12));
       })
       .catch(() => {});
   }, []);

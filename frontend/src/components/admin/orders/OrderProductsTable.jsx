@@ -1,6 +1,7 @@
 import { formatCurrency } from '../../../utils/format'
 import { CustomizationSummary } from '../../shared/CustomizationSummary'
 import { TShirtPrintAssets } from '../../shared/TShirtPrintAssets'
+import { OrderItemDesignPreview } from './OrderItemDesignPreview'
 import { isTShirtLineItem } from '../../../utils/tShirtOrderAssets'
 
 export function OrderProductsTable({ items = [] }) {
@@ -31,8 +32,17 @@ export function OrderProductsTable({ items = [] }) {
                   <small>{item.sku}</small>
                   {isTShirtLineItem(item) ? (
                     <TShirtPrintAssets item={item} variant="admin" className="ord-products-tshirt-assets" />
-                  ) : null}
-                  <CustomizationSummary customization={item.customization} item={item} variant="admin" />
+                  ) : (
+                    <div className="ord-products-design-preview">
+                      <OrderItemDesignPreview item={item} />
+                    </div>
+                  )}
+                  <CustomizationSummary
+                    customization={item.customization}
+                    item={item}
+                    variant="admin"
+                    showPreview={false}
+                  />
                   {item.productionFileUrl && (
                     <a href={item.productionFileUrl} target="_blank" rel="noreferrer" className="ord-production-link">
                       Production file

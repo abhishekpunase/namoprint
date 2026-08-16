@@ -405,7 +405,33 @@
     box-shadow: none !important;
     z-index: 2 !important;
     pointer-events: auto;
+    overflow: visible !important;
+  }
+
+  .preview-photo-box--polaroid {
+    background: #fff !important;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 10px 22px rgba(15, 23, 42, 0.22) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    padding: 0;
     overflow: hidden !important;
+  }
+
+  .preview-photo-box--polaroid .preview-empty {
+    opacity: 1;
+    color: rgb(100 116 139);
+    background: #f8fafc;
+    border: 1px dashed rgba(15, 23, 42, 0.25);
+    border-radius: 4px;
+  }
+
+  .preview-photo-box--under-frame .preview-slot {
+    overflow: visible;
+  }
+
+  .preview-photo-box--under-frame .preview-slot__clip {
+    overflow: hidden;
   }
 
   .preview-photo-box--under-frame .preview-empty {
@@ -1015,7 +1041,7 @@
   }
 
   .admin-image-thumb--managed {
-    @apply h-24 w-24;
+    @apply h-28 w-28;
   }
 
   .admin-image-thumb__badge {
@@ -1023,20 +1049,58 @@
   }
 
   .admin-image-thumb__actions {
-    @apply absolute inset-x-0 top-0 flex flex-wrap justify-center gap-0.5 bg-black/55 p-1 opacity-0 transition;
-  }
-
-  .admin-image-thumb--managed:hover .admin-image-thumb__actions,
-  .admin-image-thumb--managed:focus-within .admin-image-thumb__actions {
-    @apply opacity-100;
+    @apply absolute inset-x-0 top-0 z-10 flex flex-wrap justify-center gap-1 bg-black/70 p-1 opacity-100 transition;
   }
 
   .admin-image-thumb__actions button {
-    @apply static inline-flex h-auto min-h-0 w-auto rounded px-1 py-0.5 text-[10px] font-semibold text-white;
+    position: static !important;
+    right: auto !important;
+    top: auto !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.5rem;
+    width: 1.5rem;
+    min-height: 1.5rem;
+    min-width: 1.5rem;
+    padding: 0;
+    border-radius: 0.375rem;
+    border: 0;
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: none;
+  }
+
+  .admin-image-thumb__actions button svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    stroke: currentColor;
+    color: #ffffff !important;
+  }
+
+  .admin-image-thumb__actions button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.32) !important;
   }
 
   .admin-image-thumb__actions button:disabled {
-    @apply opacity-40;
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .admin-image-thumb__actions button[title='Remove'] {
+    background: rgba(220, 38, 38, 0.85) !important;
+    color: #ffffff !important;
+  }
+
+  .admin-image-thumb__actions button[title='Set as cover'] {
+    width: auto;
+    min-width: 0;
+    padding: 0 0.35rem;
+    font-size: 9px;
+    letter-spacing: 0.02em;
   }
 
   .admin-upload-btn {
@@ -1088,7 +1152,11 @@
   }
 
   .admin-mockup-editor-wide {
-    @apply grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(280px,380px)];
+    @apply grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(240px,320px)];
+  }
+
+  .admin-mockup-editor-edit {
+    @apply grid grid-cols-1 gap-4;
   }
 
   .admin-mockup-editor-stacked {
@@ -1096,7 +1164,7 @@
   }
 
   .admin-mockup-preview-wrap {
-    @apply grid gap-2;
+    @apply grid min-w-0 gap-2;
   }
 
   .admin-mockup-preview-head {
@@ -1112,11 +1180,22 @@
   }
 
   .admin-mockup-preview {
-    @apply relative w-full overflow-hidden rounded-studio border border-dashed border-studio-line bg-[#f3f4f6];
+    @apply relative w-full overflow-visible rounded-studio border border-dashed border-studio-line bg-[#f3f4f6];
+  }
+
+  .admin-mockup-preview-scroll {
+    @apply w-full max-h-[min(62vh,560px)] overflow-auto rounded-studio;
   }
 
   .admin-mockup-preview-large {
-    @apply max-w-none min-h-[320px] w-full max-h-[min(70vh,720px)];
+    @apply relative w-full max-w-none;
+    height: auto;
+    min-height: 300px;
+    max-height: none;
+  }
+
+  .admin-mockup-frame {
+    @apply absolute inset-0 h-full w-full select-none object-fill;
   }
 
   .admin-mockup-empty {
@@ -1127,16 +1206,14 @@
     @apply text-xs text-studio-muted;
   }
 
-  .admin-mockup-frame {
-    @apply h-full w-full select-none object-fill;
-  }
-
   .admin-mockup-fit {
     @apply absolute overflow-hidden;
   }
 
   .admin-mockup-box {
     @apply absolute z-[2] cursor-move border-2 border-dashed border-emerald-500 bg-emerald-400/20;
+    overflow: visible !important;
+    contain: none !important;
   }
 
   .admin-mockup-box.is-active {
@@ -1145,6 +1222,54 @@
 
   .admin-mockup-box-label {
     @apply pointer-events-none absolute left-1 top-1 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white;
+  }
+
+  .admin-mockup-handle {
+    @apply pointer-events-auto absolute z-[5] h-3.5 w-3.5 rounded-sm border-2 border-white bg-orange-500 shadow;
+    transform: translate(-50%, -50%);
+  }
+
+  .admin-mockup-handle--nw { top: 0; left: 0; cursor: nwse-resize; }
+  .admin-mockup-handle--n { top: 0; left: 50%; cursor: ns-resize; }
+  .admin-mockup-handle--ne { top: 0; left: 100%; cursor: nesw-resize; }
+  .admin-mockup-handle--e { top: 50%; left: 100%; cursor: ew-resize; }
+  .admin-mockup-handle--se { top: 100%; left: 100%; cursor: nwse-resize; }
+  .admin-mockup-handle--s { top: 100%; left: 50%; cursor: ns-resize; }
+  .admin-mockup-handle--sw { top: 100%; left: 0; cursor: nesw-resize; }
+  .admin-mockup-handle--w { top: 50%; left: 0; cursor: ew-resize; }
+
+  .admin-mockup-handle--rotate {
+    top: -22px;
+    left: 50%;
+    @apply h-4 w-4 rounded-full bg-violet-600;
+    cursor: grab;
+  }
+
+  .admin-mockup-handle--rotate:active {
+    cursor: grabbing;
+  }
+
+  .admin-mockup-handle--rotate::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 1.5px;
+    height: 10px;
+    background: #7c3aed;
+    transform: translateX(-50%);
+  }
+
+  .admin-mockup-rotate-bar {
+    @apply flex flex-wrap items-center gap-2 rounded-studio border border-studio-line bg-studio-bg px-2.5 py-2;
+  }
+
+  .admin-mockup-rotate-bar > span {
+    @apply text-xs font-extrabold uppercase tracking-wide text-studio-muted;
+  }
+
+  .admin-mockup-rotate-bar input {
+    @apply h-9 w-20 rounded-studio border border-studio-line bg-white px-2 text-center text-sm font-semibold outline-none;
   }
 
   .admin-mockup-resize-handle {

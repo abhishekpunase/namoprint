@@ -60,9 +60,18 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(cookieParser(env.cookieSecret));
 app.use(mongoSanitize());
 app.use(hpp());
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-app.use('/mockups', express.static(resolveFrontendStatic('mockups')));
-app.use('/products', express.static(resolveFrontendStatic('products')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'), {
+  maxAge: '7d',
+  etag: true,
+  lastModified: true,
+  setHeaders(res, filePath) {
+    if (/\.(svg|png|jpe?g|webp|gif)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    }
+  },
+}));
+app.use('/mockups', express.static(resolveFrontendStatic('mockups'), { maxAge: '7d' }));
+app.use('/products', express.static(resolveFrontendStatic('products'), { maxAge: '7d' }));
 app.use('/api', apiLimiter, routes);
 
 app.get('/health', async (_req, res) => {

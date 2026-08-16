@@ -106,7 +106,7 @@ const DEFAULT_CATEGORY_CAROUSEL = [
     label: 'Photo Collage',
     productType: 'photo-collage',
     videoUrl: 'https://test-videos.co.uk/vids/sintel/mp4/h264/360/Sintel_360_10s_1MB.mp4',
-    posterUrl: '/mockups/frame-collage.svg',
+    posterUrl: '/products/mockups/frame-collage.svg',
     sortOrder: 12,
   },
   {

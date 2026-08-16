@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiImage, FiUpload, FiType, FiBox, FiX, FiRotateCw, FiTrash2, FiMove, FiPlay, FiPause } from 'react-icons/fi'
 import { getProductFrameImage, getProductBaseImage, usesLiveProductImage } from '../../data/fallbackCatalog'
 import { getFinishStyle, getFrameStyleHint, hexToRgba, parseMaterialThickness } from '../../data/frameVisuals'
-import { resolveCollageMockup, resolvePreviewPhotoBoxes } from '../../data/collageFrameMockup'
+import { resolveCollageMockup, resolvePreviewPhotoBoxes, isBuiltInPolaroidFrame, isCollageFrameProduct } from '../../data/collageFrameMockup'
 import { resolveMediaUrl } from '../../utils/mediaUrl'
-import { punchFrameHoles, shouldPunchFrameHoles, inferSlotClipPathsFromFrame } from '../../utils/frameImageUtils'
+import { shouldPunchFrameHoles, needsForcedPhotoWindowCut, cutFramePhotoWindows, frameSlotsAreTransparent, inferSlotClipPathsFromFrame } from '../../utils/frameImageUtils'
+import { analyzeMockupFromUrl } from '../../utils/mockupAnalyzer'
 import { photoBoxToStyle, resolveMockupLayout } from '../../utils/mockupLayout'
 import { HEX_PHOTO_FILL_SCALE, isHexClipPath } from '../../utils/mockupSlotShapes'
 import { wallWatchShouldUseSvgFrame } from '../../utils/wallWatchFrameUtils'
@@ -392,6 +393,11 @@ function PhotoSlot({
   const zoomBy = (delta) => emitCrop({ scale: clampCrop((effCrop.scale || 1) + delta, 1, 3) })
   const resetCrop = () => onCropChange?.({ x: 0, y: 0, scale: 1, rotate: effCrop.rotate || 0 })
 
+  /** Keep slot controls from starting a pan/drag (which blocks replace-photo clicks). */
+  const stopDragGesture = (e) => {
+    e.stopPropagation()
+  }
+
   return (
     <div
       ref={containerRef}
@@ -407,12 +413,15 @@ function PhotoSlot({
         width: '100%',
         height: '100%',
         touchAction: draggable && src ? 'none' : 'auto',
-        ...(clipPath ? { clipPath, WebkitClipPath: clipPath } : {}),
+        overflow: 'visible',
       }}
     >
       {src ? (
         <>
-          <div className="preview-slot__clip">
+          <div
+            className="preview-slot__clip"
+            style={clipPath ? { clipPath, WebkitClipPath: clipPath } : undefined}
+          >
             <img
               src={src}
               alt={label}
@@ -433,28 +442,31 @@ function PhotoSlot({
                 </div>
               </div>
 
-              <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+              <div className="absolute bottom-2 right-2 z-20 flex items-center gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
                 <button
                   type="button"
+                  onPointerDown={stopDragGesture}
                   onClick={(e) => { e.stopPropagation(); zoomBy(-0.15) }}
                   title="Zoom out"
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white hover:bg-black/80"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white hover:bg-black/80"
                 >
                   −
                 </button>
                 <button
                   type="button"
+                  onPointerDown={stopDragGesture}
                   onClick={(e) => { e.stopPropagation(); zoomBy(0.15) }}
                   title="Zoom in"
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white hover:bg-black/80"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs font-bold text-white hover:bg-black/80"
                 >
                   +
                 </button>
                 <button
                   type="button"
+                  onPointerDown={stopDragGesture}
                   onClick={(e) => { e.stopPropagation(); resetCrop() }}
                   title="Reset position"
-                  className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                 >
                   <FiRotateCw size={11} />
                 </button>
@@ -463,11 +475,17 @@ function PhotoSlot({
               {onClick && (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onClick() }}
+                  onPointerDown={stopDragGesture}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onClick()
+                  }}
                   title="Change photo"
-                  className="absolute top-2 right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-700 opacity-100 shadow transition sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white"
+                  aria-label="Change photo"
+                  className="absolute top-2 right-2 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-gray-700 opacity-100 shadow-md transition sm:opacity-0 sm:group-hover:opacity-100 hover:bg-white"
                 >
-                  <FiUpload size={12} />
+                  <FiUpload size={14} />
                 </button>
               )}
             </>
@@ -476,7 +494,10 @@ function PhotoSlot({
       ) : showLabel || onClick ? (
         <div
           className="preview-empty flex h-full w-full flex-col items-center justify-center gap-2 text-gray-400"
-          onClick={onClick}
+          onClick={(e) => {
+            e.stopPropagation()
+            onClick?.()
+          }}
           style={{ cursor: onClick ? 'pointer' : 'default' }}
         >
           {showLabel && (
@@ -951,7 +972,11 @@ export function PreviewFrame({
   const useLiveProductImage = usesLiveProductImage(product)
   const allowPhotoUpload = product?.personalization?.allowPhotoUpload !== false
   const photoBoxesList = resolvePreviewPhotoBoxes(product, variant, options)
-  const canvas = collageMockup?.canvas || product?.mockup?.canvas || { width: 1000, height: 1000 }
+  const canvasW =
+    Number(collageMockup?.canvas?.width || product?.mockup?.canvas?.width) || 1000
+  const canvasH =
+    Number(collageMockup?.canvas?.height || product?.mockup?.canvas?.height) || 1000
+  const canvas = useMemo(() => ({ width: canvasW, height: canvasH }), [canvasW, canvasH])
   const box = photoBoxesList?.[0] || product?.mockup?.photoBox || { x: 120, y: 120, width: 760, height: 760, borderRadius: 20 }
   const rawFrameImage = useLiveProductImage
     ? null
@@ -959,8 +984,10 @@ export function PreviewFrame({
   const useFrameOverlay =
     Boolean(rawFrameImage) && wallWatchShouldUseSvgFrame(product, options, variant, rawFrameImage)
   const frameImage = useFrameOverlay ? rawFrameImage : null
-  const useCollageSlots = Boolean(photoBoxesList?.length > 1)
-  const photosUnderFrame = useFrameOverlay
+  // Photos always sit under the mockup; frame stays on top. Baked collage SVGs
+  // get transparent windows cut at each slot so uploads show through the blanks.
+  const polaroidCollageFrame = isBuiltInPolaroidFrame(frameImage || rawFrameImage)
+  const photosUnderFrame = Boolean(useFrameOverlay)
   const photoLayerZ = photosUnderFrame ? 2 : 8
   const frameLayerZ = photosUnderFrame ? 30 : 10
   const dialLayerZ = photosUnderFrame || useFrameOverlay ? 35 : 18
@@ -980,49 +1007,182 @@ export function PreviewFrame({
 
   const stageRef = useRef(null)
   const [processedFrameUrl, setProcessedFrameUrl] = useState('')
+  const [autoDetectedBoxes, setAutoDetectedBoxes] = useState(null)
   const [mockupLayout, setMockupLayout] = useState({
     canvas,
     photoBoxes: photoBoxesList || (box?.width ? [box] : []),
   })
 
-  const sourcePhotoBoxes = useMemo(
-    () => (photoBoxesList?.length ? photoBoxesList : box?.width ? [box] : []),
-    [photoBoxesList, box?.x, box?.y, box?.width, box?.height, box?.borderRadius, box?.rotate],
-  )
+  // If admin frame has blank windows but product mockup slots are missing/incomplete,
+  // detect them on the storefront the same way hex frames were authored.
+  useEffect(() => {
+    if (!frameImage || !useFrameOverlay) {
+      setAutoDetectedBoxes(null)
+      return undefined
+    }
+
+    const expected =
+      Number(product?.personalization?.maxPhotos) ||
+      Number(product?.defaultOptions?.collagePhotoCount) ||
+      0
+    const needsMulti =
+      expected > 1 ||
+      isCollageFrameProduct(product, variant, options) ||
+      polaroidCollageFrame
+    const haveMulti = (photoBoxesList?.length || 0) > 1
+    const missingClips =
+      haveMulti && photoBoxesList.some((entry) => !entry?.clipPath) && !polaroidCollageFrame
+
+    if (haveMulti && !missingClips) {
+      setAutoDetectedBoxes(null)
+      return undefined
+    }
+    if (!needsMulti && haveMulti) {
+      setAutoDetectedBoxes(null)
+      return undefined
+    }
+    if (!needsMulti && (photoBoxesList?.length || 0) >= 1) {
+      setAutoDetectedBoxes(null)
+      return undefined
+    }
+
+    let cancelled = false
+    analyzeMockupFromUrl(frameImage, { forAdmin: true })
+      .then((analysis) => {
+        if (cancelled) return
+        const detected =
+          analysis.photoBoxes?.length > 1
+            ? analysis.photoBoxes
+            : analysis.photoBox
+              ? [analysis.photoBox]
+              : []
+        if (!detected.length) {
+          setAutoDetectedBoxes(null)
+          return
+        }
+        if (detected.length > (photoBoxesList?.length || 0) || missingClips) {
+          setAutoDetectedBoxes(detected)
+        } else {
+          setAutoDetectedBoxes(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAutoDetectedBoxes(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    frameImage,
+    useFrameOverlay,
+    photoBoxesList,
+    product,
+    variant,
+    options,
+    polaroidCollageFrame,
+  ])
+
+  // Stabilize slot list by content — parent rebuilds arrays every render and was
+  // re-fetching the same mockup.svg in a tight loop (mobile freeze / missing frames).
+  const resolvedPhotoBoxesList =
+    autoDetectedBoxes?.length > (photoBoxesList?.length || 0)
+      ? autoDetectedBoxes
+      : autoDetectedBoxes?.length &&
+          photoBoxesList?.some((entry) => !entry?.clipPath) &&
+          autoDetectedBoxes.every((entry) => entry.clipPath)
+        ? autoDetectedBoxes
+        : photoBoxesList
+
+  const sourcePhotoBoxesKey =
+    resolvedPhotoBoxesList?.length > 0
+      ? resolvedPhotoBoxesList
+          .map(
+            (b) =>
+              `${b.x},${b.y},${b.width},${b.height},${b.borderRadius || 0},${b.rotate || 0},${b.clipPath || ''}`,
+          )
+          .join('|')
+      : box?.width
+        ? `${box.x},${box.y},${box.width},${box.height},${box.borderRadius || 0},${box.rotate || 0},${box.clipPath || ''}`
+        : ''
+
+  const sourcePhotoBoxes = useMemo(() => {
+    if (resolvedPhotoBoxesList?.length) return resolvedPhotoBoxesList
+    if (box?.width) return [box]
+    return []
+    // intentionally keyed by content, not array identity
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourcePhotoBoxesKey])
+
+  const useCollageSlots = Boolean(sourcePhotoBoxes.length > 1)
 
   useEffect(() => {
     let cancelled = false
-    if (!frameImage || !useFrameOverlay) {
-      resolveMockupLayout(null, canvas, sourcePhotoBoxes).then((layout) => {
-        if (!cancelled) setMockupLayout(layout)
+    const applyLayout = (layout) => {
+      if (cancelled) return
+      setMockupLayout((prev) => {
+        const sameCanvas =
+          prev?.canvas?.width === layout?.canvas?.width &&
+          prev?.canvas?.height === layout?.canvas?.height
+        const prevBoxes = prev?.photoBoxes || []
+        const nextBoxes = layout?.photoBoxes || []
+        const sameBoxes =
+          prevBoxes.length === nextBoxes.length &&
+          prevBoxes.every(
+            (b, i) =>
+              b.x === nextBoxes[i].x &&
+              b.y === nextBoxes[i].y &&
+              b.width === nextBoxes[i].width &&
+              b.height === nextBoxes[i].height,
+          )
+        const sameFit =
+          prev?.fit?.width === layout?.fit?.width &&
+          prev?.fit?.height === layout?.fit?.height &&
+          prev?.fit?.left === layout?.fit?.left &&
+          prev?.fit?.top === layout?.fit?.top
+        if (sameCanvas && sameBoxes && sameFit) return prev
+        return layout
       })
+    }
+
+    if (!frameImage || !useFrameOverlay) {
+      resolveMockupLayout(null, canvas, sourcePhotoBoxes).then(applyLayout)
       return () => {
         cancelled = true
       }
     }
-    resolveMockupLayout(frameImage, canvas, sourcePhotoBoxes).then((layout) => {
-      if (!cancelled) setMockupLayout(layout)
-    })
+    resolveMockupLayout(frameImage, canvas, sourcePhotoBoxes).then(applyLayout)
     return () => {
       cancelled = true
     }
-  }, [frameImage, canvas.width, canvas.height, useFrameOverlay, sourcePhotoBoxes, canvas])
+  }, [frameImage, canvasW, canvasH, useFrameOverlay, sourcePhotoBoxesKey, canvas, sourcePhotoBoxes])
 
   const layoutCanvas = mockupLayout.canvas || canvas
   const layoutBoxes =
     mockupLayout.photoBoxes?.length > 0
       ? mockupLayout.photoBoxes
-      : photoBoxesList?.length
-        ? photoBoxesList
-        : box?.width
-          ? [box]
-          : []
+      : sourcePhotoBoxes
   const layoutBox = layoutBoxes[0] || box
+  const layoutBoxesKey = (layoutBoxes || [])
+    .map(
+      (b) =>
+        `${b.x},${b.y},${b.width},${b.height},${b.borderRadius || 0},${b.rotate || 0},${b.clipPath || ''}`,
+    )
+    .join('|')
 
   const [clippedLayoutBoxes, setClippedLayoutBoxes] = useState(null)
 
   useEffect(() => {
-    if (!frameImage || !photosUnderFrame || !layoutBoxes.length || useCollageSlots) {
+    // Infer organic/hex clip paths when admin slots are rect-only but frame windows are shaped.
+    const forceCutArt = needsForcedPhotoWindowCut(frameImage) || polaroidCollageFrame
+    if (
+      !frameImage ||
+      !photosUnderFrame ||
+      !layoutBoxes.length ||
+      forceCutArt ||
+      compact ||
+      minimal
+    ) {
       setClippedLayoutBoxes(null)
       return undefined
     }
@@ -1043,7 +1203,16 @@ export function PreviewFrame({
     return () => {
       cancelled = true
     }
-  }, [frameImage, photosUnderFrame, layoutBoxes, layoutCanvas.width, layoutCanvas.height])
+  }, [
+    frameImage,
+    photosUnderFrame,
+    layoutBoxesKey,
+    layoutCanvas.width,
+    layoutCanvas.height,
+    polaroidCollageFrame,
+    compact,
+    minimal,
+  ])
 
   const effectiveLayoutBoxes = clippedLayoutBoxes || layoutBoxes
   const effectiveLayoutBox = effectiveLayoutBoxes[0] || layoutBox
@@ -1053,25 +1222,49 @@ export function PreviewFrame({
       setProcessedFrameUrl('')
       return undefined
     }
-    const needsPunch = useCollageSlots && layoutBoxes?.length && shouldPunchFrameHoles(frameImage)
-    if (!needsPunch) {
-      setProcessedFrameUrl(frameImage)
+    if (!layoutBoxes?.length) {
+      setProcessedFrameUrl((prev) => (prev === frameImage ? prev : frameImage))
       return undefined
     }
 
     let cancelled = false
-    punchFrameHoles(frameImage, layoutBoxes, layoutCanvas)
-      .then((url) => {
+    ;(async () => {
+      try {
+        const forceCut = needsForcedPhotoWindowCut(frameImage) || polaroidCollageFrame
+        if (forceCut) {
+          const url = await cutFramePhotoWindows(frameImage, layoutBoxes, layoutCanvas, { inset: 6 })
+          if (!cancelled) setProcessedFrameUrl(url)
+          return
+        }
+
+        // Hex / acrylic frames with real alpha holes — use as-is (best quality).
+        const alreadyClear = await frameSlotsAreTransparent(frameImage, layoutBoxes, layoutCanvas)
+        if (alreadyClear) {
+          if (!cancelled) setProcessedFrameUrl((prev) => (prev === frameImage ? prev : frameImage))
+          return
+        }
+
+        // Baked sample photos or solid placeholders in windows — cut full slot holes
+        // so customer uploads show through under the frame (same idea as hex transparency).
+        const url = await cutFramePhotoWindows(frameImage, layoutBoxes, layoutCanvas, {
+          inset: shouldPunchFrameHoles(frameImage) ? 2 : 4,
+        })
         if (!cancelled) setProcessedFrameUrl(url)
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setProcessedFrameUrl(frameImage)
-      })
+      }
+    })()
 
     return () => {
       cancelled = true
     }
-  }, [frameImage, layoutBoxes, layoutCanvas.width, layoutCanvas.height, useCollageSlots])
+  }, [
+    frameImage,
+    layoutBoxesKey,
+    layoutCanvas.width,
+    layoutCanvas.height,
+    polaroidCollageFrame,
+  ])
 
   const displayFrameUrl = processedFrameUrl || frameImage
 
@@ -1084,22 +1277,33 @@ export function PreviewFrame({
   const inputRef = useRef(null)
   const activeSlotIndex = useRef(0)
 
-  const openFilePicker = (slotIndex = 0) => {
-    onSlotActivate?.(slotIndex)
-    if (useCollageSlots && slotIndex === 0) {
+  const openFilePicker = (slotIndex = 0, { fillFirstEmpty = false } = {}) => {
+    // Always target the slot the user clicked when replacing; only the global
+    // "Upload Photos" button may jump to the first empty slot.
+    let target = Number(slotIndex) || 0
+    if (fillFirstEmpty && useCollageSlots) {
       const firstEmpty = layoutBoxes.findIndex((_, i) => !getPhotoSrc(i))
-      activeSlotIndex.current = firstEmpty >= 0 ? firstEmpty : slotIndex
-    } else {
-      activeSlotIndex.current = slotIndex
+      if (firstEmpty >= 0) target = firstEmpty
     }
-    inputRef.current?.click()
+    activeSlotIndex.current = target
+    onSlotActivate?.(target)
+    if (inputRef.current) {
+      inputRef.current.value = ''
+      inputRef.current.click()
+    }
   }
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (onPhotoSelect) onPhotoSelect(file, activeSlotIndex.current)
-    else setLocalPreviews((prev) => ({ ...prev, [activeSlotIndex.current]: URL.createObjectURL(file) })) // NEW: per-slot
+    const targetSlot = activeSlotIndex.current
+    if (onPhotoSelect) onPhotoSelect(file, targetSlot)
+    else {
+      setLocalPreviews((prev) => ({
+        ...prev,
+        [targetSlot]: URL.createObjectURL(file),
+      }))
+    }
     e.target.value = ''
   }
 
@@ -1281,9 +1485,11 @@ export function PreviewFrame({
 
   const editingItem = textItems.find((it) => it.id === editingId)
   const activePhotoUrl = getPhotoSrc(0) || photos[0]?.url
+  const lastPreviewPayloadRef = useRef('')
 
   useEffect(() => {
-    onPreviewChange?.({
+    if (!onPreviewChange) return
+    const payload = {
       frameColor: activeColor?.value,
       frameColorName: activeColor?.name,
       thickness: thickness.label,
@@ -1291,7 +1497,11 @@ export function PreviewFrame({
       orientation,
       size: selectedSize.label,
       textItems,
-    })
+    }
+    const serialized = JSON.stringify(payload)
+    if (serialized === lastPreviewPayloadRef.current) return
+    lastPreviewPayloadRef.current = serialized
+    onPreviewChange(payload)
   }, [activeColor, thickness, orientation, selectedSize, textItems, onPreviewChange])
 
   const stageShadow =
@@ -1307,7 +1517,7 @@ export function PreviewFrame({
           {allowPhotoUpload && (
             <button
               type="button"
-              onClick={() => openFilePicker(0)}
+              onClick={() => openFilePicker(0, { fillFirstEmpty: true })}
               className="flex shrink-0 items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-red-700 sm:px-4 sm:text-sm"
             >
               <FiUpload /> {useCollageSlots ? 'Upload Photos' : 'Select Photo'}
@@ -1593,7 +1803,8 @@ export function PreviewFrame({
               src={displayFrameUrl}
               alt=""
               aria-hidden
-              className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
+              decoding="async"
+              className={`pointer-events-none absolute inset-0 h-full w-full select-none ${polaroidCollageFrame ? 'object-fill' : 'object-contain'}`}
               style={{
                 zIndex: frameLayerZ,
                 objectPosition: 'center',

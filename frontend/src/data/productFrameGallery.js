@@ -84,7 +84,7 @@ export function getProductCardThumbnails(product) {
   return LIVE_THUMBNAILS_BY_TYPE[product?.productType] || DUMMY_PRODUCT_THUMBNAILS
 }
 
-/** Sample people photos for frame previews (Unsplash — free to hotlink) */
+/** Sample people photos for frame previews (stable Unsplash / local fallbacks) */
 export const SAMPLE_PEOPLE_PHOTOS = [
   {
     id: 'family',
@@ -93,7 +93,7 @@ export const SAMPLE_PEOPLE_PHOTOS = [
   },
   {
     id: 'couple',
-    url: 'https://images.unsplash.com/photo-1522673606300-8adb96334055?w=600&auto=format&fit=crop&q=80',
+    url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&auto=format&fit=crop&q=80',
     label: 'Couple',
   },
   {

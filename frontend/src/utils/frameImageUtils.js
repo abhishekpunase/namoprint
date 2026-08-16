@@ -26,10 +26,146 @@ export function shouldPunchFrameHoles(frameUrl) {
 }
 
 /**
+ * Built-in / lifestyle collage mockups (path-traced SVG or sample-filled art)
+ * need full slot rectangles cleared so customer photos show through.
+ */
+export function needsForcedPhotoWindowCut(frameUrl) {
+  const url = String(resolveMediaUrl(frameUrl) || frameUrl || '').toLowerCase()
+  return url.includes('frame-collage')
+}
+
+const cutWindowCache = new Map()
+const transparencyCache = new Map()
+
+/**
+ * Sample photo-slot centers — true when the frame already has see-through windows
+ * (like the hex acrylic PNG). Opaque lifestyle mockups return false.
+ */
+export async function frameSlotsAreTransparent(
+  frameUrl,
+  photoBoxes = [],
+  canvas = { width: 1000, height: 1000 },
+) {
+  const resolved = resolveMediaUrl(frameUrl)
+  if (!resolved || !photoBoxes?.length) return false
+
+  const cacheKey = `${resolved}|${canvas.width}x${canvas.height}|${photoBoxes
+    .map((b) => `${b.x},${b.y},${b.width},${b.height}`)
+    .join(';')}`
+  if (transparencyCache.has(cacheKey)) return transparencyCache.get(cacheKey)
+
+  try {
+    const img = await loadImage(resolved)
+    const w = img.naturalWidth || Number(canvas.width) || 1000
+    const h = img.naturalHeight || Number(canvas.height) || 1000
+    const refW = Number(canvas.width) || w
+    const refH = Number(canvas.height) || h
+    const scaleX = w / refW
+    const scaleY = h / refH
+
+    const el = document.createElement('canvas')
+    el.width = w
+    el.height = h
+    const ctx = el.getContext('2d', { willReadFrequently: true })
+    ctx.drawImage(img, 0, 0, w, h)
+    const { data } = ctx.getImageData(0, 0, w, h)
+
+    let transparentSlots = 0
+    for (const box of photoBoxes) {
+      const cx = Math.round(((Number(box.x) || 0) + (Number(box.width) || 0) / 2) * scaleX)
+      const cy = Math.round(((Number(box.y) || 0) + (Number(box.height) || 0) / 2) * scaleY)
+      const samples = [
+        [cx, cy],
+        [cx - 4, cy],
+        [cx + 4, cy],
+        [cx, cy - 4],
+        [cx, cy + 4],
+      ]
+      let hits = 0
+      for (const [x, y] of samples) {
+        if (x < 0 || y < 0 || x >= w || y >= h) continue
+        if (data[(y * w + x) * 4 + 3] < 140) hits += 1
+      }
+      if (hits >= 3) transparentSlots += 1
+    }
+
+    const ok = transparentSlots >= Math.ceil(photoBoxes.length * 0.6)
+    transparencyCache.set(cacheKey, ok)
+    return ok
+  } catch {
+    transparencyCache.set(cacheKey, false)
+    return false
+  }
+}
+
+/**
+ * Cut fully transparent windows in the frame overlay at each photo slot.
+ * Photos sit under the frame and show only through these holes.
+ */
+export async function cutFramePhotoWindows(
+  frameUrl,
+  photoBoxes = [],
+  canvas = { width: 1000, height: 1000 },
+  { inset = 2 } = {},
+) {
+  const resolved = resolveMediaUrl(frameUrl)
+  if (!resolved || !photoBoxes?.length) return resolved
+
+  const cacheKey = `${resolved}|${canvas.width}x${canvas.height}|${inset}|${photoBoxes
+    .map((b) => `${b.x},${b.y},${b.width},${b.height},${b.rotate || 0}`)
+    .join(';')}`
+  if (cutWindowCache.has(cacheKey)) return cutWindowCache.get(cacheKey)
+
+  const img = await loadImage(resolved)
+  const w = img.naturalWidth || Number(canvas.width) || 1000
+  const h = img.naturalHeight || Number(canvas.height) || 1000
+  const refW = Number(canvas.width) || w
+  const refH = Number(canvas.height) || h
+  const scaleX = w / refW
+  const scaleY = h / refH
+
+  const el = document.createElement('canvas')
+  el.width = w
+  el.height = h
+  const ctx = el.getContext('2d')
+  ctx.drawImage(img, 0, 0, w, h)
+
+  for (const box of photoBoxes) {
+    const x = Math.max(0, Math.floor((Number(box.x) || 0) * scaleX) + inset)
+    const y = Math.max(0, Math.floor((Number(box.y) || 0) * scaleY) + inset)
+    const bw = Math.max(0, Math.ceil((Number(box.width) || 0) * scaleX) - inset * 2)
+    const bh = Math.max(0, Math.ceil((Number(box.height) || 0) * scaleY) - inset * 2)
+    if (bw < 2 || bh < 2) continue
+
+    const rotate = Number(box.rotate) || 0
+    ctx.save()
+    ctx.globalCompositeOperation = 'destination-out'
+    if (rotate) {
+      const cx = x + bw / 2
+      const cy = y + bh / 2
+      ctx.translate(cx, cy)
+      ctx.rotate((rotate * Math.PI) / 180)
+      ctx.fillRect(-bw / 2, -bh / 2, bw, bh)
+    } else {
+      ctx.fillRect(x, y, bw, bh)
+    }
+    ctx.restore()
+  }
+
+  const dataUrl = el.toDataURL('image/png')
+  cutWindowCache.set(cacheKey, dataUrl)
+  return dataUrl
+}
+
+/**
  * Cut transparent holes in frame overlay where customer photos go.
  * Handles JPG mockups with black placeholder boxes (not just PNG transparency).
  */
 export async function punchFrameHoles(frameUrl, photoBoxes = [], canvas = { width: 1000, height: 1000 }) {
+  if (needsForcedPhotoWindowCut(frameUrl)) {
+    return cutFramePhotoWindows(frameUrl, photoBoxes, canvas)
+  }
+
   const resolved = resolveMediaUrl(frameUrl)
   if (!resolved || !photoBoxes?.length) return resolved
 
@@ -269,41 +405,9 @@ export async function prepareFrameOverlayForExport(frameUrl, photoBoxes = [], ca
   const resolved = resolveMediaUrl(frameUrl)
   if (!resolved || !photoBoxes?.length) return resolved
 
-  if (!shouldPunchFrameHoles(frameUrl)) {
-    return resolved
+  if (needsForcedPhotoWindowCut(frameUrl) || shouldPunchFrameHoles(frameUrl)) {
+    return cutFramePhotoWindows(frameUrl, photoBoxes, canvas, { inset: 1 })
   }
 
-  const img = await loadImage(resolved)
-  const w = img.naturalWidth || Number(canvas.width) || 1000
-  const h = img.naturalHeight || Number(canvas.height) || 1000
-  const refW = Number(canvas.width) || w
-  const refH = Number(canvas.height) || h
-  const scaleX = w / refW
-  const scaleY = h / refH
-
-  const el = document.createElement('canvas')
-  el.width = w
-  el.height = h
-  const ctx = el.getContext('2d')
-  ctx.drawImage(img, 0, 0, w, h)
-
-  const { data } = ctx.getImageData(0, 0, w, h)
-  const pad = 1
-
-  for (const box of photoBoxes) {
-    const x0 = Math.max(0, Math.floor((Number(box.x) || 0) * scaleX) + pad)
-    const y0 = Math.max(0, Math.floor((Number(box.y) || 0) * scaleY) + pad)
-    const x1 = Math.min(w, Math.ceil(((Number(box.x) || 0) + (Number(box.width) || 0)) * scaleX) - pad)
-    const y1 = Math.min(h, Math.ceil(((Number(box.y) || 0) + (Number(box.height) || 0)) * scaleY) - pad)
-
-    for (let y = y0; y < y1; y++) {
-      for (let x = x0; x < x1; x++) {
-        const i = (y * w + x) * 4
-        data[i + 3] = 0
-      }
-    }
-  }
-
-  ctx.putImageData(new ImageData(data, w, h), 0, 0)
-  return el.toDataURL('image/png')
+  return resolved
 }

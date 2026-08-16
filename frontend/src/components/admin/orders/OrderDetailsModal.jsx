@@ -3,6 +3,7 @@ import { Download, Eye, X } from 'lucide-react'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { CustomizationSummary } from '../../shared/CustomizationSummary'
 import { TShirtPrintAssets } from '../../shared/TShirtPrintAssets'
+import { OrderItemDesignPreview } from './OrderItemDesignPreview'
 import { formatCurrency } from '../../../utils/format'
 import {
   formatOrderModalDate,
@@ -10,9 +11,9 @@ import {
   getOrderItemSizeLabel,
   getOrderPaymentMethodLabel,
 } from '../../../utils/orderAdminUtils'
+import { downloadOrderItemDesignFile } from '../../../utils/orderDesignDownload'
 import { isTShirtLineItem } from '../../../utils/tShirtOrderAssets'
 import { resolveMediaUrl } from '../../../utils/mediaUrl'
-import { api } from '../../../services/api'
 
 function formatAddressBlock(address) {
   if (!address) return '—'
@@ -61,7 +62,7 @@ export function OrderDetailsModal({ order, open, onClose }) {
     setDownloadError('')
     setDownloadingId(item._id)
     try {
-      await api.adminDownloadOrderDesign(order._id, item._id, order.orderNo, item.sku)
+      await downloadOrderItemDesignFile(order, item)
     } catch (err) {
       setDownloadError(err.message || 'Download failed')
     } finally {
@@ -153,17 +154,7 @@ export function OrderDetailsModal({ order, open, onClose }) {
                   <div className="ord-detail-modal__design">
                     <span className="ord-detail-modal__label">Uploaded Design:</span>
                     <div className="ord-detail-modal__design-row">
-                      {itemDesignUrl ? (
-                        <button
-                          type="button"
-                          className="ord-detail-modal__thumb-btn"
-                          onClick={() => setLightbox({ url: itemDesignUrl, title: item.title })}
-                        >
-                          <img src={resolveMediaUrl(itemDesignUrl)} alt="" />
-                        </button>
-                      ) : (
-                        <div className="ord-detail-modal__thumb-empty">No preview saved</div>
-                      )}
+                      <OrderItemDesignPreview item={item} onOpenLightbox={setLightbox} />
                       <div className="ord-detail-modal__design-actions">
                         <button
                           type="button"
@@ -184,7 +175,9 @@ export function OrderDetailsModal({ order, open, onClose }) {
                         </button>
                       </div>
                     </div>
-                    <small className="ord-detail-modal__hint">JPEG export at 300 DPI for print production</small>
+                    <small className="ord-detail-modal__hint">
+                      Download = same collage as live preview (slots + crop). Server export used only as fallback.
+                    </small>
                   </div>
                   )}
                 </div>

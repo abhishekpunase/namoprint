@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { getProductBaseImage } from '../../data/fallbackCatalog'
+import { getProductImage, getProductBaseImage, mockupImages } from '../../data/fallbackCatalog'
 import { getProductCardThumbnails, getProductFramePresets } from '../../data/productFrameGallery'
-import { resolveMediaUrl, resolveProductImage } from '../../utils/mediaUrl'
+import { isLikelyMediaUrl, resolveMediaUrl, resolveProductImage } from '../../utils/mediaUrl'
 
 const SHAPE_STYLES = {
   round: 'rounded-full aspect-square',
@@ -22,88 +22,99 @@ const SIZE_BY_SHAPE = {
 /** Product types that show the real uploaded photo on cards (not dummy frame presets). */
 const LIVE_CARD_IMAGE_TYPES = new Set(['acrylic-name-plate', 'god-photo-frame'])
 
-function LiveProductCardImage({ product, className = '', fit = 'contain', compact = false }) {
-  const candidates = useMemo(() => {
-    const urls = (product?.images || []).map((url) => resolveMediaUrl(url)).filter(Boolean)
-    const base = resolveMediaUrl(getProductBaseImage(product))
-    if (base && !urls.includes(base)) urls.unshift(base)
-    const thumb = getProductCardThumbnails(product)[0]?.image
-    if (thumb) urls.push(resolveMediaUrl(thumb))
-    return [...new Set(urls.filter(Boolean))]
-  }, [product])
-
-  const [index, setIndex] = useState(0)
-  const src = candidates[index] || ''
-
-  if (compact) {
-    return (
-      <div className={`overflow-hidden bg-white ${className}`}>
-        {src ? (
-          <img
-            src={src}
-            alt={product?.title || 'Product'}
-            className="block w-full h-auto"
-            loading="lazy"
-            onError={() => {
-              if (index < candidates.length - 1) setIndex((i) => i + 1)
-            }}
-          />
-        ) : (
-          <div className="flex h-48 w-full items-center justify-center bg-neutral-100 text-sm text-neutral-500">
-            No image
-          </div>
-        )}
-      </div>
-    )
-  }
-
+function CardImageShell({ className = '', children }) {
   return (
     <div
       className={`flex h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 ${className}`}
     >
-      {src ? (
-        <img
-          src={src}
-          alt={product?.title || 'Product'}
-          className={fit === 'cover' ? 'h-full w-full object-cover' : 'max-h-full max-w-full object-contain drop-shadow-lg'}
-          loading="lazy"
-          onError={() => {
-            if (index < candidates.length - 1) setIndex((i) => i + 1)
-          }}
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-neutral-200 text-sm text-neutral-500">
-          No image
-        </div>
-      )}
+      {children}
     </div>
   )
 }
 
-/** Home / catalog — admin thumbnail, live product photo, or styled preset */
-export function ProductCardFrameImage({ product, productType, className = '' }) {
-  const resolvedType = productType || product?.productType || 'acrylic-photo-frame'
-  const adminThumbnail = resolveMediaUrl(product?.thumbnail)
+function collectCardImageCandidates(product) {
+  const urls = []
+  const push = (raw) => {
+    const resolved = resolveMediaUrl(raw)
+    if (resolved && isLikelyMediaUrl(resolved) && !urls.includes(resolved)) {
+      urls.push(resolved)
+    }
+  }
 
-  if (adminThumbnail) {
+  push(product?.thumbnail)
+  for (const image of product?.images || []) push(image)
+  push(product?.mockup?.baseImageUrl)
+  push(product?.mockup?.frameImage)
+  push(getProductBaseImage(product))
+  push(getProductImage(product))
+
+  const thumb = getProductCardThumbnails(product)[0]?.image
+  push(thumb)
+
+  const preset = getProductFramePresets(product)[0]
+  push(preset?.photoUrl)
+
+  push(mockupImages.portrait)
+  return urls
+}
+
+function CascadingProductImage({
+  candidates,
+  alt,
+  className,
+  fit = 'contain',
+  compact = false,
+}) {
+  const [index, setIndex] = useState(0)
+  const src = candidates[index] || ''
+
+  const advance = () => {
+    if (index < candidates.length - 1) setIndex((i) => i + 1)
+  }
+
+  if (!src) {
     return (
-      <div
-        className={`flex h-64 items-center justify-center overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 ${className}`}
-      >
-        <img
-          src={adminThumbnail}
-          alt={product?.title || 'Product'}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
+      <div className="flex h-full min-h-48 w-full items-center justify-center bg-neutral-100 text-sm text-neutral-500">
+        No image
       </div>
     )
   }
 
-  const liveImage = resolveProductImage(product)
-  const useLivePhoto =
-    Boolean(liveImage) &&
-    (LIVE_CARD_IMAGE_TYPES.has(resolvedType) || (resolvedType === 'god-photo-frame' && product?.images?.length))
+  if (compact) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={className || 'block h-auto w-full'}
+        loading="lazy"
+        decoding="async"
+        onError={advance}
+      />
+    )
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={
+        className ||
+        (fit === 'cover'
+          ? 'h-full w-full object-cover'
+          : 'max-h-full max-w-full object-contain drop-shadow-lg')
+      }
+      loading="lazy"
+      decoding="async"
+      onError={advance}
+    />
+  )
+}
+
+/** Home / catalog — admin thumbnail, mockup frame, live product photo, or styled preset */
+export function ProductCardFrameImage({ product, productType, className = '' }) {
+  const resolvedType = productType || product?.productType || 'acrylic-photo-frame'
+
+  const candidates = useMemo(() => collectCardImageCandidates(product), [product])
 
   const previewProduct = useMemo(
     () => ({
@@ -114,39 +125,66 @@ export function ProductCardFrameImage({ product, productType, className = '' }) 
   )
   const preset = useMemo(() => getProductFramePresets(previewProduct)[0], [previewProduct])
 
-  if (useLivePhoto) {
+  const liveImage = resolveProductImage(product)
+  const useLivePhoto =
+    Boolean(liveImage) &&
+    (LIVE_CARD_IMAGE_TYPES.has(resolvedType) ||
+      (resolvedType === 'god-photo-frame' && product?.images?.length))
+
+  const useFramedPreset =
+    !product?.thumbnail &&
+    !product?.images?.length &&
+    !product?.mockup?.frameImage &&
+    Boolean(preset) &&
+    !useLivePhoto
+
+  if (useFramedPreset) {
+    const shape = preset.shape || 'portrait'
+    const shapeClass = SHAPE_STYLES[shape] || SHAPE_STYLES.portrait
+    const sizeClass = SIZE_BY_SHAPE[shape] || SIZE_BY_SHAPE.portrait
+    const framedCandidates = [
+      resolveMediaUrl(preset.photoUrl),
+      ...candidates,
+    ].filter((url, i, arr) => url && isLikelyMediaUrl(url) && arr.indexOf(url) === i)
+
     return (
-      <LiveProductCardImage
-        product={product}
-        className={className}
-        fit={resolvedType === 'god-photo-frame' ? 'cover' : 'contain'}
-        compact={resolvedType === 'god-photo-frame'}
-      />
+      <div
+        className={`flex h-64 items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 ${className}`}
+      >
+        <div
+          className={`relative overflow-hidden border-[5px] border-neutral-800 bg-neutral-900 p-1.5 shadow-lg ${shapeClass} ${sizeClass}`}
+        >
+          <CascadingProductImage
+            candidates={framedCandidates}
+            alt={product?.title || preset.label}
+            className="h-full w-full object-cover"
+            fit="cover"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
+        </div>
+      </div>
     )
   }
 
-  if (!preset) return null
-
-  const shape = preset.shape || 'portrait'
-  const shapeClass = SHAPE_STYLES[shape] || SHAPE_STYLES.portrait
-  const sizeClass = SIZE_BY_SHAPE[shape] || SIZE_BY_SHAPE.portrait
-  const presetUrl = resolveMediaUrl(preset.photoUrl)
+  if (useLivePhoto && resolvedType === 'god-photo-frame') {
+    return (
+      <div className={`overflow-hidden bg-white ${className}`}>
+        <CascadingProductImage
+          candidates={candidates}
+          alt={product?.title || 'Product'}
+          compact
+        />
+      </div>
+    )
+  }
 
   return (
-    <div
-      className={`flex h-64 items-center justify-center bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 ${className}`}
-    >
-      <div
-        className={`relative overflow-hidden border-[5px] border-neutral-800 bg-neutral-900 p-1.5 shadow-lg ${shapeClass} ${sizeClass}`}
-      >
-        <img
-          src={presetUrl}
-          alt={product?.title || preset.label}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 to-transparent" />
-      </div>
-    </div>
+    <CardImageShell className={className}>
+      <CascadingProductImage
+        candidates={candidates}
+        alt={product?.title || 'Product'}
+        fit={resolvedType === 'god-photo-frame' ? 'cover' : 'contain'}
+      />
+    </CardImageShell>
   )
 }

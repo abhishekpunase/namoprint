@@ -266,7 +266,7 @@ export function useProductForm({ productId, onSaved }) {
 
       if (frameUrl && (!formToSave.photoBoxes?.length)) {
         try {
-          const analysis = await analyzeMockupFromUrl(frameUrl)
+          const analysis = await analyzeMockupFromUrl(frameUrl, { forAdmin: true })
           formToSave = { ...formToSave, ...analysisToFormPatch(analysis, frameUrl) }
         } catch {
           if (!formToSave.frameImage) formToSave = { ...formToSave, frameImage: frameUrl }

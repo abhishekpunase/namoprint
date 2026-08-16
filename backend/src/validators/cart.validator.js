@@ -16,10 +16,11 @@ const customizationSchema = Joi.object({
   slotPhotos: Joi.array()
     .items(
       Joi.object({
-        asset: Joi.string().required(),
+        asset: Joi.string().allow('', null),
+        url: Joi.string().allow('', null),
         crop: Joi.object().unknown(true),
         placement: Joi.string().allow('', null),
-      })
+      }).or('asset', 'url')
     )
     .default([]),
   previewUrl: Joi.string().allow('', null),

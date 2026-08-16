@@ -204,22 +204,27 @@ export function ProductDesignerPage({
   }
 
   const uploadSlotPhoto = async (file, slotIndex = 0) => {
-    setActiveSlot(slotIndex)
+    const target = Number.isFinite(slotIndex) ? slotIndex : 0
+    setActiveSlot(target)
     try {
       const asset = await uploadPhoto(file)
       setSlotPhotos((current) => {
         const next = [...current]
-        next[slotIndex] = {
+        while (next.length <= target) next.push({})
+        next[target] = {
           assetId: asset._id,
           url: asset.previewUrl || URL.createObjectURL(file),
+          crop: { ...DEFAULT_CROP },
         }
         return next
       })
     } catch {
       setSlotPhotos((current) => {
         const next = [...current]
-        next[slotIndex] = {
+        while (next.length <= target) next.push({})
+        next[target] = {
           url: URL.createObjectURL(file),
+          crop: { ...DEFAULT_CROP },
         }
         return next
       })
@@ -255,10 +260,11 @@ export function ProductDesignerPage({
     try {
       const uploadedSlotPhotos = slotPhotos
         .map((photo, index) =>
-          photo?.assetId
+          photo?.assetId || photo?.url
             ? {
-                asset: photo.assetId,
-                crop: photo.crop || design.crop,
+                asset: photo.assetId || undefined,
+                url: photo.url || undefined,
+                crop: photo.crop || design.crop || { x: 0, y: 0, scale: 1, rotate: 0 },
                 placement: `slot-${index + 1}`,
               }
             : null,

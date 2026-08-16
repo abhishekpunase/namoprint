@@ -32,18 +32,60 @@ function isWhitePlaceholderPixel(imageData, width, x, y) {
   if (a < ALPHA_THRESHOLD) return false
   const lum = 0.299 * r + 0.587 * g + 0.114 * b
   const sat = Math.max(r, g, b) - Math.min(r, g, b)
-  if (lum >= 228 && sat < 48) return true
-  if (lum >= 248 && sat < 28) return true
+  if (lum >= 220 && sat < 52) return true
+  if (lum >= 245 && sat < 36) return true
   return false
+}
+
+/** Light/mid grey flat placeholders used in collage JPG/PNG mockups. */
+function isLightGrayPlaceholderPixel(imageData, width, x, y) {
+  const { r, g, b, a } = pixelAt(imageData, width, x, y)
+  if (a < ALPHA_THRESHOLD) return false
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
+  const sat = Math.max(r, g, b) - Math.min(r, g, b)
+  // Typical slot fills: #BEBEBE–#F0F0F0 (and soft off-white)
+  if (lum < 155 || lum > 248) return false
+  if (sat > 42) return false
+  return true
 }
 
 function isLightGreenPlaceholderPixel(imageData, width, x, y) {
   const { r, g, b, a } = pixelAt(imageData, width, x, y)
   if (a < ALPHA_THRESHOLD) return false
   const lum = 0.299 * r + 0.587 * g + 0.114 * b
-  if (lum < 168 || lum > 245) return false
+  if (lum < 155 || lum > 245) return false
   const sat = Math.max(r, g, b) - Math.min(r, g, b)
   return sat < 115 && g >= r - 10 && g >= b - 10
+}
+
+function isBlankPlaceholderPixel(imageData, width, x, y) {
+  return (
+    isWhitePlaceholderPixel(imageData, width, x, y) ||
+    isLightGrayPlaceholderPixel(imageData, width, x, y) ||
+    isLightGreenPlaceholderPixel(imageData, width, x, y)
+  )
+}
+
+/**
+ * Keep solid photo windows, drop thin white text strokes on patterned backgrounds.
+ * A blank pixel must also have mostly blank neighbors in a small radius.
+ */
+function makeSolidBlankTester(imageData, width, height, isBlank, radius = 2, minRatio = 0.72) {
+  return (x, y) => {
+    if (!isBlank(x, y)) return false
+    let blank = 0
+    let total = 0
+    for (let dy = -radius; dy <= radius; dy += 1) {
+      for (let dx = -radius; dx <= radius; dx += 1) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue
+        total += 1
+        if (isBlank(nx, ny)) blank += 1
+      }
+    }
+    return total > 0 && blank / total >= minRatio
+  }
 }
 
 function loadImageFromUrl(url) {
@@ -150,20 +192,26 @@ function mergeAllSlotRegions(...lists) {
 /** Light green / white / gray placeholder windows common in collage JPG mockups. */
 function findWhiteBlankRegions(imageData, width, height, maxRegions = MAX_REGIONS) {
   const isWhite = (x, y) => isWhitePlaceholderPixel(imageData, width, x, y)
-  return findSlotRegions(imageData, width, height, isWhite, maxRegions, 0.15)
+  const isSolid = makeSolidBlankTester(imageData, width, height, isWhite, 2, 0.7)
+  return findSlotRegions(imageData, width, height, isSolid, maxRegions, 0.12)
+}
+
+function findLightGrayBlankRegions(imageData, width, height, maxRegions = MAX_REGIONS) {
+  const isGray = (x, y) => isLightGrayPlaceholderPixel(imageData, width, x, y)
+  const isSolid = makeSolidBlankTester(imageData, width, height, isGray, 2, 0.68)
+  return findSlotRegions(imageData, width, height, isSolid, maxRegions, 0.14)
 }
 
 function findLightGreenBlankRegions(imageData, width, height, maxRegions = MAX_REGIONS) {
   const isGreen = (x, y) => isLightGreenPlaceholderPixel(imageData, width, x, y)
-  return findSlotRegions(imageData, width, height, isGreen, maxRegions, 0.2)
+  const isSolid = makeSolidBlankTester(imageData, width, height, isGreen, 2, 0.68)
+  return findSlotRegions(imageData, width, height, isSolid, maxRegions, 0.16)
 }
 
 function findLightBlankRegions(imageData, width, height, maxRegions = MAX_REGIONS) {
-  const isLightBlank = (x, y) =>
-    isWhitePlaceholderPixel(imageData, width, x, y) ||
-    isLightGreenPlaceholderPixel(imageData, width, x, y)
-
-  return findSlotRegions(imageData, width, height, isLightBlank, maxRegions, 0.18)
+  const isLightBlank = (x, y) => isBlankPlaceholderPixel(imageData, width, x, y)
+  const isSolid = makeSolidBlankTester(imageData, width, height, isLightBlank, 2, 0.68)
+  return findSlotRegions(imageData, width, height, isSolid, maxRegions, 0.12)
 }
 
 function bboxForSegment(region, imageData, width, height, isSlotPixel, axis, segStart, segEnd) {
@@ -210,7 +258,7 @@ function bboxForSegment(region, imageData, width, height, isSlotPixel, axis, seg
 
 function splitByAxis(region, imageData, width, height, isSlotPixel, axis) {
   const size = axis === 'x' ? region.width : region.height
-  if (size < 24) return [region]
+  if (size < 20) return [region]
 
   const counts = new Array(size).fill(0)
   for (let dy = 0; dy < region.height; dy += 1) {
@@ -223,8 +271,9 @@ function splitByAxis(region, imageData, width, height, isSlotPixel, axis) {
   }
 
   const maxCount = Math.max(...counts, 1)
-  const gapThreshold = Math.max(1, maxCount * 0.05)
-  const minGap = Math.max(3, Math.round(size * 0.014))
+  // More aggressive gaps so separate white windows split even with faint bridges
+  const gapThreshold = Math.max(1, maxCount * 0.08)
+  const minGap = Math.max(2, Math.round(size * 0.01))
 
   const segments = []
   let segStart = 0
@@ -251,31 +300,36 @@ function splitByAxis(region, imageData, width, height, isSlotPixel, axis) {
 }
 
 function splitMergedRegion(region, imageData, width, height, isSlotPixel) {
-  if (region.fillRatio >= 0.92 && region.width < width * 0.55) return [region]
-
-  const xParts = splitByAxis(region, imageData, width, height, isSlotPixel, 'x')
-  if (xParts.length <= 1) {
-    const yParts = splitByAxis(region, imageData, width, height, isSlotPixel, 'y')
-    return yParts.length > 1 ? yParts : [region]
+  if (region.fillRatio >= 0.88 && region.width < width * 0.6 && region.height < height * 0.6) {
+    return [region]
   }
 
-  return xParts.flatMap((part) => {
-    if (part.fillRatio >= 0.9) return [part]
+  const xParts = splitByAxis(region, imageData, width, height, isSlotPixel, 'x')
+  const parts = xParts.length > 1
+    ? xParts
+    : splitByAxis(region, imageData, width, height, isSlotPixel, 'y')
+
+  if (parts.length <= 1) return [region]
+
+  return parts.flatMap((part) => {
+    if (part.fillRatio >= 0.85 && part.width < width * 0.55) return [part]
     const yParts = splitByAxis(part, imageData, width, height, isSlotPixel, 'y')
-    return yParts.length > 1 ? yParts : [part]
+    if (yParts.length > 1) return yParts
+    const xAgain = splitByAxis(part, imageData, width, height, isSlotPixel, 'x')
+    return xAgain.length > 1 ? xAgain : [part]
   })
 }
 
 function refineSlotRegions(regions, imageData, width, height, isSlotPixel) {
   const refined = []
   for (const region of regions) {
-    if (region.fillRatio >= 0.92 && region.width < width * 0.55 && region.height < height * 0.55) {
+    if (region.fillRatio >= 0.88 && region.width < width * 0.55 && region.height < height * 0.55) {
       refined.push(region)
       continue
     }
     refined.push(...splitMergedRegion(region, imageData, width, height, isSlotPixel))
   }
-  return refined
+  return dedupeRegions(refined, 0.4)
 }
 
 function filterAdminDetectedBoxes(boxes, canvasWidth, canvasHeight) {
@@ -321,18 +375,23 @@ function sortRegionsSpatially(regions) {
 }
 
 function regionToBox(region) {
-  const { area, pixelCount, fillRatio, ...box } = region
+  const { area, pixelCount, fillRatio, clipPath, _padded, ...box } = region
   const isHex = isHexLikeFillRatio(fillRatio)
-  const pad = isHex ? 6 : 2
+  const pad = _padded ? 0 : isHex ? 6 : 2
 
   const raw = {
-    x: box.x + pad,
-    y: box.y + pad,
-    width: Math.max(8, box.width - pad * 2),
-    height: Math.max(8, box.height - pad * 2),
-    rotate: 0,
-    borderRadius: 0,
+    x: Number(box.x) + pad,
+    y: Number(box.y) + pad,
+    width: Math.max(8, Number(box.width) - pad * 2),
+    height: Math.max(8, Number(box.height) - pad * 2),
+    rotate: box.rotate || 0,
+    borderRadius: Number(box.borderRadius) || 0,
     fillRatio,
+  }
+
+  if (clipPath) {
+    const { fillRatio: _f, ...out } = raw
+    return { ...out, borderRadius: 0, clipPath }
   }
 
   if (isHex) {
@@ -432,27 +491,51 @@ function pickBestSlotRegions(transparentRegions, darkRegions, lightRegions = [],
     return lightRegions.length ? lightRegions : darkRegions.length ? darkRegions : transparentRegions
   }
 
+  const isTransparent = (x, y) => {
+    const i = (y * width + x) * 4
+    return imageData[i + 3] < ALPHA_THRESHOLD
+  }
   const isWhite = (x, y) => isWhitePlaceholderPixel(imageData, width, x, y)
+  const isGray = (x, y) => isLightGrayPlaceholderPixel(imageData, width, x, y)
   const isGreen = (x, y) => isLightGreenPlaceholderPixel(imageData, width, x, y)
-  const isLight = (x, y) => isWhite(x, y) || isGreen(x, y)
+  const isBlank = (x, y) => isBlankPlaceholderPixel(imageData, width, x, y)
+  const solidWhite = makeSolidBlankTester(imageData, width, height, isWhite, 2, 0.7)
+  const solidGray = makeSolidBlankTester(imageData, width, height, isGray, 2, 0.68)
+  const solidGreen = makeSolidBlankTester(imageData, width, height, isGreen, 2, 0.68)
+  const solidBlank = makeSolidBlankTester(imageData, width, height, isBlank, 2, 0.68)
 
-  let primary = refineSlotRegions(findWhiteBlankRegions(imageData, width, height), imageData, width, height, isWhite)
+  // PNG frames: real cut-out holes win over flat color heuristics.
+  const refinedTransparent = refineSlotRegions(transparentRegions, imageData, width, height, isTransparent)
+  if (refinedTransparent.length >= 2) {
+    return dedupeRegions(refinedTransparent, 0.4)
+  }
+
+  // Solid blank windows (ignores thin white handwriting on dark collage frames).
+  let primary = refineSlotRegions(findLightBlankRegions(imageData, width, height), imageData, width, height, solidBlank)
 
   if (primary.length < 2) {
-    const greenOnly = refineSlotRegions(findLightGreenBlankRegions(imageData, width, height), imageData, width, height, isGreen)
-    primary = mergeAllSlotRegions(primary, greenOnly)
+    const grayOnly = refineSlotRegions(findLightGrayBlankRegions(imageData, width, height), imageData, width, height, solidGray)
+    const whiteOnly = refineSlotRegions(findWhiteBlankRegions(imageData, width, height), imageData, width, height, solidWhite)
+    const greenOnly = refineSlotRegions(findLightGreenBlankRegions(imageData, width, height), imageData, width, height, solidGreen)
+    primary = mergeAllSlotRegions(primary, grayOnly, whiteOnly, greenOnly, refinedTransparent)
   }
 
   if (primary.length >= 2) {
-    return dedupeRegions(primary, 0.5)
+    return dedupeRegions(primary, 0.4)
   }
 
-  const refinedLight = refineSlotRegions(lightRegions, imageData, width, height, isLight)
-  const merged = mergeAllSlotRegions(primary, refinedLight, transparentRegions, darkRegions)
-  if (merged.length) return dedupeRegions(merged, 0.5)
-  if (primary.length) return primary
+  // Even a single solid blank is better than falling back to a default inset.
+  if (primary.length === 1) {
+    const extras = mergeAllSlotRegions(primary, refinedTransparent, darkRegions)
+    if (extras.length >= 2) return dedupeRegions(extras, 0.4)
+    return primary
+  }
+
+  const refinedLight = refineSlotRegions(lightRegions, imageData, width, height, solidBlank)
+  const merged = mergeAllSlotRegions(primary, refinedLight, refinedTransparent, darkRegions)
+  if (merged.length) return dedupeRegions(merged, 0.4)
+  if (refinedTransparent.length) return refinedTransparent
   if (darkRegions.length) return darkRegions
-  if (transparentRegions.length) return transparentRegions
   return lightRegions
 }
 
@@ -541,6 +624,7 @@ function drawImageToCanvas(img, options = {}) {
     ...scaleBack(boxesAtScale[index] || region),
     clipPath: boxesAtScale[index]?.clipPath,
     fillRatio: boxesAtScale[index]?.fillRatio ?? region.fillRatio,
+    _padded: true,
   }))
 
   return buildResultFromRegions(scaledRegions, canvasWidth, canvasHeight, { forAdmin })

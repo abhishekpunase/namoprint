@@ -12,6 +12,7 @@ import { NamePlateProduct } from '../models/NamePlateProduct.js';
 import { TShirtProduct } from '../models/TShirtProduct.js';
 import { Order } from '../models/Order.js';
 import { Product } from '../models/Product.js';
+import { UploadAsset } from '../models/UploadAsset.js';
 import { User } from '../models/User.js';
 import { calculateOrderTotals, validateCouponForUser } from '../services/coupon.service.js';
 import { exportOrderItemDesignJpeg, loadImageBuffer, resolveTShirtAssetUrl } from '../services/orderDesign.service.js';
@@ -19,6 +20,42 @@ import { createShipmentDraft } from '../services/shipping.service.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { resolveProductVariantFromCartItem } from '../utils/resolveProductVariant.js';
+
+async function enrichOrderSlotPhotoUrls(orderDoc) {
+  if (!orderDoc?.items?.length) return orderDoc;
+
+  const order = orderDoc.toObject ? orderDoc.toObject() : { ...orderDoc };
+  const assetIds = [];
+
+  for (const item of order.items || []) {
+    for (const slot of item.customization?.slotPhotos || []) {
+      const id = slot?.asset || slot?.assetId;
+      if (id && !slot.url) assetIds.push(String(id));
+    }
+  }
+
+  if (!assetIds.length) return order;
+
+  const uniqueIds = [...new Set(assetIds)];
+  const assets = await UploadAsset.find({ _id: { $in: uniqueIds } }).lean();
+  const byId = new Map(assets.map((asset) => [String(asset._id), asset]));
+
+  for (const item of order.items || []) {
+    const slots = item.customization?.slotPhotos;
+    if (!Array.isArray(slots)) continue;
+    item.customization.slotPhotos = slots.map((slot) => {
+      if (!slot || slot.url) return slot;
+      const asset = byId.get(String(slot.asset || slot.assetId));
+      if (!asset) return slot;
+      return {
+        ...slot,
+        url: asset.optimizedUrl || asset.url || asset.previewUrl || '',
+      };
+    });
+  }
+
+  return order;
+}
 
 const findCheckoutCart = async (req) => {
   return Cart.findOne({ user: req.user._id })
@@ -395,14 +432,22 @@ export const listMyOrders = asyncHandler(async (req, res) => {
 export const getOrder = asyncHandler(async (req, res) => {
   const filter = { _id: req.params.id };
   if (req.user.role !== 'admin') filter.user = req.user._id;
-  const order = await Order.findOne(filter).populate('items.tShirtProduct');
+  const order = await Order.findOne(filter)
+    .populate('items.product')
+    .populate('items.tShirtProduct');
   if (!order) throw new ApiError(404, 'Order not found');
-  res.json({ success: true, order });
+  const enriched = await enrichOrderSlotPhotoUrls(order);
+  res.json({ success: true, order: enriched });
 });
 
 export const listAdminOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find().sort('-createdAt').limit(200).populate('items.tShirtProduct');
-  res.json({ success: true, orders });
+  const orders = await Order.find()
+    .sort('-createdAt')
+    .limit(200)
+    .populate('items.product')
+    .populate('items.tShirtProduct');
+  const enriched = await Promise.all(orders.map((order) => enrichOrderSlotPhotoUrls(order)));
+  res.json({ success: true, orders: enriched });
 });
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {
